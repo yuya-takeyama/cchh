@@ -111,7 +111,6 @@ cchh/
 │   ├── logger/
 │   └── integration/
 ├── event_logger.sh         # Event logging script (legacy)
-├── doc_problems.md        # Documentation issues report
 ├── test_problems.md       # Test issues report
 ├── LICENSE                # Project license
 ├── .gitignore             # Git ignore rules
