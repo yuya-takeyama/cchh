@@ -90,17 +90,23 @@ class EventFormatter:
         """Format command message with appropriate level"""
         # 重要コマンドの分類
         if any(command.startswith(critical_cmd) for critical_cmd in CRITICAL_COMMANDS):
-            return SLACK_MESSAGES["command_critical"].format(
-                command=command
-            ), NotificationLevel.CHANNEL
+            emoji = "🚨"
+            level = NotificationLevel.CHANNEL
         elif any(
             command.startswith(important_cmd) for important_cmd in IMPORTANT_COMMANDS
         ):
-            return SLACK_MESSAGES["command_important"].format(
-                command=command
-            ), NotificationLevel.THREAD
+            emoji = "⚡"
+            level = NotificationLevel.THREAD
         else:
             return None, None
+            
+        # 複数行コマンドの場合はコードブロックで表示
+        if "\n" in command:
+            message = f"{emoji} コマンド実行\n```\n$ {command}\n```"
+        else:
+            message = f"{emoji} コマンド実行: `{command}`"
+            
+        return message, level
 
     def format_todo_update(
         self, todos: list[dict[str, Any]]
