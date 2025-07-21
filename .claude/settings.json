@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /Users/yuya/src/github.com/yuya-takeyama/cchh && uv run python ruff_hook.py"
+            "command": "uv run python ruff_hook.py"
           }
         ]
       }
