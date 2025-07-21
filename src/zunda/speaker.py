@@ -8,7 +8,6 @@ from ..core.types import HookEvent, HookEventName
 from ..utils.logger import get_error_logger
 from .command_formatter import CommandFormatter
 from .config import zunda_config
-from .prompt_formatter import PromptFormatter
 
 # Zundamon message templates
 ZUNDAMON_MESSAGES = {
@@ -45,7 +44,6 @@ class ZundaSpeaker(BaseHandler):
 
     def __init__(self):
         self.enabled = zunda_config.enabled
-        self.prompt_formatter = PromptFormatter()
         self.command_formatter = CommandFormatter()
         self.error_logger = get_error_logger()
 
@@ -58,28 +56,13 @@ class ZundaSpeaker(BaseHandler):
         if self._is_test_environment():
             return
 
-        # UserPromptSubmitイベントのみ処理
-        if (
-            event.hook_event_name
-            in (HookEventName.USER_PROMPT_SUBMIT, "UserPromptSubmit")
-            and zunda_config.speak_on_prompt_submit
-        ):
-            self._handle_user_prompt_submit(event)
-        elif event.hook_event_name in (HookEventName.PRE_TOOL_USE, "PreToolUse"):
+        # PreToolUseイベントの処理
+        if event.hook_event_name in (HookEventName.PRE_TOOL_USE, "PreToolUse"):
             self._handle_pre_tool_use(event)
         elif event.hook_event_name in (HookEventName.NOTIFICATION, "Notification"):
             self._handle_notification(event)
         elif event.hook_event_name in (HookEventName.STOP, "Stop"):
             self._handle_stop(event)
-
-    def _handle_user_prompt_submit(self, event: HookEvent) -> None:
-        """Handle UserPromptSubmit event"""
-        if not event.prompt:
-            return
-
-        # プロンプトを音声用に整形
-        formatted_prompt = self.prompt_formatter.format(event.prompt)
-        self._speak(formatted_prompt)
 
     def _handle_pre_tool_use(self, event: HookEvent) -> None:
         """Handle PreToolUse event"""

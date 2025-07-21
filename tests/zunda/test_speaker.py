@@ -15,8 +15,6 @@ def zunda_speaker():
     """Create ZundaSpeaker instance"""
     with patch("src.zunda.speaker.zunda_config") as mock_config:
         mock_config.enabled = True
-        mock_config.speak_on_prompt_submit = True
-        mock_config.speak_speed = 1.2
         mock_config.default_style = MagicMock(value="0")
         mock_config.is_silent_command = MagicMock(return_value=False)
         speaker = ZundaSpeaker()
@@ -28,10 +26,11 @@ def zunda_speaker():
 def mock_event():
     """Create a mock HookEvent"""
     return HookEvent(
-        hook_event_name="UserPromptSubmit",
+        hook_event_name="PreToolUse",
         session_id="test-session-123",
         cwd="/test/directory",
-        prompt="Please fix the authentication bug",
+        tool_name="Bash",
+        tool_input={"command": "npm test"},
     )
 
 
@@ -44,18 +43,6 @@ class TestZundaSpeaker:
         with patch("subprocess.run") as mock_run:
             zunda_speaker.handle_event(mock_event)
             mock_run.assert_not_called()
-
-    def test_handle_user_prompt_submit(self, zunda_speaker, mock_event):
-        """Test handling of UserPromptSubmit event"""
-        with patch("subprocess.run") as mock_run:
-            zunda_speaker.handle_event(mock_event)
-
-            mock_run.assert_called_once()
-            args = mock_run.call_args[0][0]
-            assert args[0] == "zundaspeak"
-            assert args[1] == "-s"
-            assert args[2] == "0"  # Default style
-            assert "authentication" in args[3]
 
     def test_handle_pre_tool_use_bash(self, zunda_speaker):
         """Test handling of Bash command"""
@@ -151,25 +138,6 @@ class TestZundaSpeaker:
 
             # Should not raise
             zunda_speaker._speak("Test message")
-
-    def test_prompt_formatting(self, zunda_speaker):
-        """Test prompt formatting"""
-        long_prompt = "A" * 200
-        event = HookEvent(
-            hook_event_name="UserPromptSubmit",
-            session_id="test-session",
-            cwd="/test",
-            prompt=long_prompt,
-        )
-
-        with patch("subprocess.run") as mock_run:
-            zunda_speaker.handle_event(event)
-
-            args = mock_run.call_args[0][0]
-            message = args[3]
-            # Should be truncated
-            assert len(message) < 150
-            assert "という指示なのだ" in message
 
     def test_command_simplification(self, zunda_speaker):
         """Test command simplification"""

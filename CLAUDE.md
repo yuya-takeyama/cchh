@@ -176,7 +176,6 @@ cchh/
 
 #### Zunda Voice Configuration
 - `CCHH_ZUNDA_SPEAKER_ENABLED`: Enable/disable voice feedback (default: true)
-- `CCHH_ZUNDA_SPEAK_ON_PROMPT_SUBMIT`: Speak on prompt submit (default: true)
 
 #### Event Logging Configuration
 - `CCHH_EVENT_LOGGING_ENABLED`: Enable/disable event logging (default: true)
