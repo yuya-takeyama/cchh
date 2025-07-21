@@ -3,6 +3,7 @@
 import os
 import re
 import subprocess
+import urllib.parse
 
 from ..core.base import BaseHandler
 from ..core.types import HookEvent, HookEventName
@@ -117,8 +118,6 @@ class ZundaSpeaker(BaseHandler):
             url = event.tool_input.get("url", "")
             if url:
                 # URLを読みやすく短縮
-                import urllib.parse
-
                 parsed_url = urllib.parse.urlparse(url)
                 domain = parsed_url.netloc or url[:50]  # ドメインまたは最初の50文字
                 voice_message = ZUNDAMON_MESSAGES["web_fetch"].format(url=domain)
