@@ -148,6 +148,7 @@ cchh/
 - **Notification**: Claude notifications
 - **Stop**: Session termination
 - **UserPromptSubmit**: User prompt submission
+- **PreCompact**: Context overflow warning
 
 #### Notification Systems
 - **Slack notifications**: Commands, errors, session tracking
@@ -268,6 +269,16 @@ Add to Claude Code settings (`~/.claude/settings.json`):
       }
     ],
     "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
       {
         "hooks": [
           {

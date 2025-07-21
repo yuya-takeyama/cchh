@@ -113,6 +113,16 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
     ]
   }
 }
