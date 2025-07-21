@@ -14,11 +14,17 @@
 
 現在の`hook_handler.py`は、全てのClaude Codeイベントを受け取り、内部で処理を分岐しています：
 
-1. **セッション管理** - 新規セッション時のcwd表示
-2. **Slack通知** - 各種イベントをSlackに通知
-3. **ずんだもん音声通知** - プロンプト送信時の音声読み上げ
-4. **イベントロギング** - 全イベントをJSONLファイルに記録
-5. **コマンド美化** - Bashコマンドを日本語に変換
+1. **Slack通知機能**
+   - セッション開始時のcwd表示
+   - 各種イベントをSlackに通知
+   - Bashコマンドを読みやすい形に整形
+
+2. **ずんだもん音声通知機能**
+   - プロンプト送信時の音声読み上げ
+   - Bashコマンドを音声用に簡略化
+
+3. **イベントロギング機能**
+   - 全イベントをJSONLファイルに記録
 
 その他の独立したスクリプト：
 - **Ruff Format Hook** (`ruff_format_hook.py`) - ファイル編集後の自動フォーマット
@@ -48,28 +54,32 @@ cchh/
 │   │   ├── session.py                  # セッション管理
 │   │   └── types.py                    # 型定義（HookEvent等）
 │   │
-│   ├── handlers/                       # イベントハンドラー
+│   ├── slack/                          # Slack通知機能（完全独立）
 │   │   ├── __init__.py
-│   │   ├── base.py                    # ベースハンドラークラス
-│   │   ├── pre_tool_use.py            # PreToolUseハンドラー
-│   │   ├── post_tool_use.py           # PostToolUseハンドラー
-│   │   ├── user_prompt_submit.py      # UserPromptSubmitハンドラー
-│   │   ├── notification.py            # Notificationハンドラー
-│   │   ├── stop.py                    # Stop/SubagentStopハンドラー
-│   │   └── pre_compact.py             # PreCompactハンドラー
+│   │   ├── notifier.py                 # Slack通知のメイン実装
+│   │   ├── session_handler.py         # セッション開始時のcwd表示（Slack用）
+│   │   ├── event_formatter.py         # イベントメッセージのフォーマット
+│   │   ├── command_formatter.py       # Bashコマンドの整形（詳細版）
+│   │   └── config.py                   # Slack固有の設定
 │   │
-│   ├── features/                       # 機能実装
+│   ├── zunda/                          # ずんだもん音声機能（完全独立）
 │   │   ├── __init__.py
-│   │   ├── session_notifier.py        # セッション開始通知
-│   │   ├── slack_notifier.py          # Slack通知
-│   │   ├── zunda_speaker.py           # ずんだもん音声
-│   │   ├── event_logger.py            # イベントロギング
-│   │   └── command_beautifier.py      # コマンド美化
+│   │   ├── speaker.py                  # 音声読み上げのメイン実装
+│   │   ├── prompt_formatter.py        # プロンプトの音声用整形
+│   │   ├── command_formatter.py       # Bashコマンドの整形（簡略版）
+│   │   └── config.py                   # ずんだもん固有の設定
 │   │
-│   └── utils/                          # ユーティリティ
+│   ├── logger/                         # イベントロギング機能
+│   │   ├── __init__.py
+│   │   ├── event_logger.py             # JSONLファイルへのロギング
+│   │   └── config.py                   # ロガー設定
+│   │
+│   └── utils/                          # 共通ユーティリティ
 │       ├── __init__.py
-│       ├── config.py                   # 設定管理
-│       ├── logger.py                   # ロギング基盤
+│       ├── command_parser.py           # Bashコマンドのパース（共通処理）
+│       ├── text_utils.py               # テキスト処理（長文省略等）
+│       ├── config.py                   # 全体共通設定
+│       ├── logger.py                   # デバッグ用ロガー
 │       └── io_helpers.py              # JSON I/O等
 │
 └── tests/                              # テストディレクトリ
@@ -79,13 +89,16 @@ cchh/
     ├── core/
     │   ├── test_dispatcher.py
     │   └── test_session.py
-    ├── handlers/
-    │   ├── test_pre_tool_use.py
-    │   └── ...
-    ├── features/
-    │   ├── test_slack_notifier.py
-    │   ├── test_zunda_speaker.py
-    │   └── ...
+    ├── slack/
+    │   ├── test_notifier.py
+    │   ├── test_session_handler.py
+    │   └── test_command_formatter.py
+    ├── zunda/
+    │   ├── test_speaker.py
+    │   ├── test_prompt_formatter.py
+    │   └── test_command_formatter.py
+    ├── logger/
+    │   └── test_event_logger.py
     └── integration/
         └── test_real_events.py
 ```
@@ -124,30 +137,95 @@ if __name__ == "__main__":
 # src/core/dispatcher.py
 class EventDispatcher:
     def __init__(self):
-        self.handlers = self._init_handlers()
-        self.features = self._init_features()
+        # 各機能を初期化（完全に独立）
+        self.slack = self._init_slack()
+        self.zunda = self._init_zunda()
+        self.logger = self._init_logger()
     
     def dispatch(self, event: HookEvent):
-        # イベントタイプに応じてハンドラーを実行
-        handler = self.handlers.get(event.hook_event_name)
-        if handler:
-            handler.handle(event, self.features)
+        # 各機能に並列でイベントを渡す（それぞれが独立して判断）
+        if self.slack:
+            self.slack.handle_event(event)
+        if self.zunda:
+            self.zunda.handle_event(event)
+        if self.logger:
+            self.logger.handle_event(event)
 ```
 
-#### 機能の分離
+#### 機能の完全分離
 
-各機能は独立したクラスとして実装し、必要に応じて有効/無効を切り替え可能：
+各機能は完全に独立したモジュールとして実装：
 
 ```python
-# src/features/slack_notifier.py
+# src/slack/notifier.py
 class SlackNotifier:
     def __init__(self):
         self.enabled = os.getenv("SLACK_NOTIFICATIONS_ENABLED", "true").lower() == "true"
+        self.session_handler = SessionHandler()  # Slack専用のセッション処理
+        self.command_formatter = CommandFormatter()  # Slack専用のコマンド整形
     
-    def notify(self, event: HookEvent, message: str):
+    def handle_event(self, event: HookEvent):
         if not self.enabled:
             return
-        # Slack通知の実装
+        
+        # イベントタイプに応じて処理を分岐
+        if event.hook_event_name == "PreToolUse":
+            self._handle_pre_tool_use(event)
+        elif event.hook_event_name == "UserPromptSubmit":
+            self._handle_user_prompt(event)
+        # ... 他のイベント
+```
+
+```python
+# src/zunda/speaker.py
+class ZundaSpeaker:
+    def __init__(self):
+        self.enabled = os.getenv("ZUNDA_SPEAKER_ENABLED", "true").lower() == "true"
+        self.prompt_formatter = PromptFormatter()  # ずんだもん専用の整形
+        self.command_formatter = CommandFormatter()  # ずんだもん専用の簡略化
+    
+    def handle_event(self, event: HookEvent):
+        if not self.enabled:
+            return
+        
+        # UserPromptSubmitイベントのみ処理
+        if event.hook_event_name == "UserPromptSubmit":
+            self._speak_prompt(event)
+```
+
+#### コマンド処理の共通化と特殊化
+
+```python
+# src/utils/command_parser.py（共通処理）
+def parse_bash_command(command: str) -> dict:
+    """Bashコマンドを解析して構造化"""
+    # コマンド名、引数、オプションなどを抽出
+    return {
+        "command": "python3",
+        "args": ["path/to/script.py"],
+        "options": {"--verbose": True},
+        "raw": command
+    }
+
+# src/slack/command_formatter.py（Slack用）
+class CommandFormatter:
+    def format(self, parsed_cmd: dict) -> str:
+        """Slack通知用：ある程度詳細を残す"""
+        if len(parsed_cmd["raw"]) > 200:
+            # 長すぎる場合は省略
+            return f"{parsed_cmd['command']} {parsed_cmd['args'][0]} ..."
+        return parsed_cmd["raw"]
+
+# src/zunda/command_formatter.py（ずんだもん用）  
+class CommandFormatter:
+    def format(self, parsed_cmd: dict) -> str:
+        """音声読み上げ用：超シンプルに"""
+        cmd_map = {
+            "python3": "パイソンを実行",
+            "npm": "エヌピーエムを実行",
+            "git": "ギットコマンド"
+        }
+        return cmd_map.get(parsed_cmd["command"], parsed_cmd["command"])
 ```
 
 ### 3. Claude Code設定（settings.json）
@@ -186,16 +264,19 @@ class SlackNotifier:
 
 ```bash
 # .env または環境変数
-SLACK_NOTIFICATIONS_ENABLED=true
-ZUNDA_SPEAKER_ENABLED=true
-EVENT_LOGGING_ENABLED=true
-SESSION_NOTIFIER_ENABLED=true
-COMMAND_BEAUTIFIER_ENABLED=true
+SLACK_NOTIFICATIONS_ENABLED=true        # Slack通知全体のON/OFF
+ZUNDA_SPEAKER_ENABLED=true             # ずんだもん音声全体のON/OFF
+EVENT_LOGGING_ENABLED=true             # イベントロギングのON/OFF
 
-# 特定のイベントでのみ有効化
-SLACK_NOTIFY_ON_TOOL_USE=true
-SLACK_NOTIFY_ON_STOP=true
-ZUNDA_SPEAK_ON_PROMPT_SUBMIT=true
+# Slack通知の詳細設定
+SLACK_SHOW_SESSION_START=true          # セッション開始時のcwd表示
+SLACK_NOTIFY_ON_TOOL_USE=true          # ツール使用時の通知
+SLACK_NOTIFY_ON_STOP=true              # 処理終了時の通知
+SLACK_COMMAND_MAX_LENGTH=200           # コマンド表示の最大文字数
+
+# ずんだもん音声の詳細設定
+ZUNDA_SPEAK_ON_PROMPT_SUBMIT=true      # プロンプト送信時の読み上げ
+ZUNDA_SPEAK_SPEED=1.2                  # 読み上げ速度
 ```
 
 ### 5. 移行手順 📝
@@ -239,10 +320,12 @@ ZUNDA_SPEAK_ON_PROMPT_SUBMIT=true
 ## まとめ ✨
 
 このリファクタリングにより：
+- **機能の完全分離** - Slack通知とずんだもん音声が独立して動作
 - **設定変更なし**で機能の追加・変更が可能
 - **内部モジュール化**により保守性向上
 - **単一エントリーポイント**でデバッグが容易
 - **uv run** での統一的な実行
+- 各機能が独自のフォーマット処理を持つことで、用途に最適化
 - 将来的な拡張への道筋も確保
 
 開発初期の柔軟性を保ちながら、コードの品質を向上させる実践的なアプローチです！
