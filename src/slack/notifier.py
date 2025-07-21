@@ -1,7 +1,6 @@
 """Slack notification handler"""
 
 import json
-import os
 import sys
 import urllib.parse
 import urllib.request
@@ -10,7 +9,7 @@ from ..core.base import BaseHandler
 from ..core.types import HookEvent, HookEventName
 from ..utils.logger import get_error_logger
 from .command_formatter import CommandFormatter
-from .config import NotificationLevel, slack_config
+from .config import NotificationLevel, RuntimeConfig
 from .event_formatter import EventFormatter
 from .session_tracker import SlackSessionTracker
 
@@ -18,34 +17,30 @@ from .session_tracker import SlackSessionTracker
 class SlackNotifier(BaseHandler):
     """Handles Slack notifications for Claude Code events"""
 
-    def __init__(self):
-        self.enabled = slack_config.enabled
+    def __init__(self, config: RuntimeConfig | None = None):
+        self.config = config or RuntimeConfig.from_environment()
         self.api_url = "https://slack.com/api/chat.postMessage"
         self.event_formatter = EventFormatter()
         self.command_formatter = CommandFormatter()
         self.error_logger = get_error_logger()
-        self._session_trackers = {}  # Cache session trackers
+        self._session_trackers: dict[str, SlackSessionTracker] = {}  # Cache session trackers
 
     def handle_event(self, event: HookEvent) -> None:
         """Handle incoming hook event"""
-        if not self.enabled or not slack_config.is_configured:
-            return
-
-        # Test環境では通知をスキップ
-        if self._is_test_environment():
+        if not self.should_handle_event(event):
             return
 
         # Get or create session tracker
         session_tracker = self._get_session_tracker(event.session_id)
 
         # Check for new session
-        if session_tracker.is_new_session and slack_config.show_session_start:
+        if session_tracker.is_new_session and self.config.show_session_start:
             self._handle_session_start(event, session_tracker)
 
         # Handle specific event types
         if (
             event.hook_event_name in (HookEventName.PRE_TOOL_USE, "PreToolUse")
-            and slack_config.notify_on_tool_use
+            and self.config.notify_on_tool_use
         ):
             self._handle_pre_tool_use(event, session_tracker)
         elif event.hook_event_name in (HookEventName.POST_TOOL_USE, "PostToolUse"):
@@ -54,7 +49,7 @@ class SlackNotifier(BaseHandler):
             self._handle_notification(event, session_tracker)
         elif (
             event.hook_event_name in (HookEventName.STOP, "Stop")
-            and slack_config.notify_on_stop
+            and self.config.notify_on_stop
         ):
             self._handle_stop(event, session_tracker)
         elif event.hook_event_name in (
@@ -191,7 +186,7 @@ class SlackNotifier(BaseHandler):
         is_new_thread = not thread_state or not thread_state.get("thread_ts")
 
         data = {
-            "channel": slack_config.channel_id,
+            "channel": self.config.channel_id,
             "text": message,
             "username": "Claude Code Bot",
             "icon_emoji": ":robot_face:",
@@ -213,7 +208,7 @@ class SlackNotifier(BaseHandler):
                 data["thread_ts"] = thread_state["thread_ts"]
 
         headers = {
-            "Authorization": f"Bearer {slack_config.bot_token}",
+            "Authorization": f"Bearer {self.config.bot_token}",
             "Content-Type": "application/json",
         }
 
@@ -246,7 +241,7 @@ class SlackNotifier(BaseHandler):
                         error_type="slack_api_error",
                         error_message=f"Slack API error: {result.get('error', 'Unknown error')}",
                         context={
-                            "channel": slack_config.channel_id,
+                            "channel": self.config.channel_id,
                             "message_preview": message[:100] if message else "",
                             "level": level.value,
                             "thread_ts": data.get("thread_ts"),
@@ -264,7 +259,7 @@ class SlackNotifier(BaseHandler):
                 error_type="slack_notification_error",
                 error_message=str(e),
                 context={
-                    "channel": slack_config.channel_id,
+                    "channel": self.config.channel_id,
                     "message_preview": message[:100] if message else "",
                     "level": level.value,
                 },
@@ -280,7 +275,7 @@ class SlackNotifier(BaseHandler):
 
     def _load_thread_state(self, session_id: str) -> dict | None:
         """Load thread state for session"""
-        thread_file = slack_config.thread_dir / f"{session_id}.json"
+        thread_file = self.config.thread_dir / f"{session_id}.json"
         if thread_file.exists():
             try:
                 return json.loads(thread_file.read_text())
@@ -290,13 +285,19 @@ class SlackNotifier(BaseHandler):
 
     def _save_thread_state(self, session_id: str, thread_ts: str) -> None:
         """Save thread state for session"""
-        thread_file = slack_config.thread_dir / f"{session_id}.json"
+        thread_file = self.config.thread_dir / f"{session_id}.json"
         thread_state = {"thread_ts": thread_ts}
         try:
             thread_file.write_text(json.dumps(thread_state))
         except Exception as e:
             print(f"Failed to save thread state: {e}", file=sys.stderr)
 
-    def _is_test_environment(self) -> bool:
-        """Check if running in test environment"""
-        return os.environ.get("TEST_ENVIRONMENT", "").lower() in ("1", "true", "yes")
+    def should_handle_event(self, event: HookEvent) -> bool:
+        """イベントを処理すべきか判定する純粋関数"""
+        if not self.config.notifications_enabled:
+            return False
+        if not self.config.is_configured:
+            return False
+        if self.config.is_test_environment:
+            return False
+        return True
