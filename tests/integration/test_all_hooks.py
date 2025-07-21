@@ -88,7 +88,7 @@ class TestAllHooksIntegration:
             env.update(env_vars)
 
         # Always set TEST_ENVIRONMENT to avoid actual notifications
-        env["TEST_ENVIRONMENT"] = "true"
+        env["CCHH_TEST_ENVIRONMENT"] = "true"
 
         cmd = [sys.executable, "all_hooks.py"]
 
@@ -119,9 +119,9 @@ class TestAllHooksIntegration:
     def test_all_features_disabled(self, sample_events):
         """Test execution with all features disabled"""
         env_vars = {
-            "SLACK_NOTIFICATIONS_ENABLED": "false",
-            "ZUNDA_SPEAKER_ENABLED": "false",
-            "EVENT_LOGGING_ENABLED": "false",
+            "CCHH_SLACK_NOTIFICATIONS_ENABLED": "false",
+            "CCHH_ZUNDA_SPEAKER_ENABLED": "false",
+            "CCHH_EVENT_LOGGING_ENABLED": "false",
         }
 
         result = self.run_all_hooks(sample_events["bash_command"], env_vars)
@@ -134,9 +134,9 @@ class TestAllHooksIntegration:
     def test_with_zunda_enabled(self, sample_events):
         """Test with Zunda speaker enabled"""
         env_vars = {
-            "SLACK_NOTIFICATIONS_ENABLED": "false",
-            "ZUNDA_SPEAKER_ENABLED": "true",
-            "EVENT_LOGGING_ENABLED": "false",
+            "CCHH_SLACK_NOTIFICATIONS_ENABLED": "false",
+            "CCHH_ZUNDA_SPEAKER_ENABLED": "true",
+            "CCHH_EVENT_LOGGING_ENABLED": "false",
         }
 
         # Run all_hooks with subprocess
@@ -183,11 +183,11 @@ class TestAllHooksIntegration:
         log_dir.mkdir()
 
         env_vars = {
-            "SLACK_NOTIFICATIONS_ENABLED": "false",
-            "ZUNDA_SPEAKER_ENABLED": "false",
-            "EVENT_LOGGING_ENABLED": "true",
+            "CCHH_SLACK_NOTIFICATIONS_ENABLED": "false",
+            "CCHH_ZUNDA_SPEAKER_ENABLED": "false",
+            "CCHH_EVENT_LOGGING_ENABLED": "true",
             "CCHH_LOG_DIR": str(log_dir),
-            "TEST_ENVIRONMENT": "false",  # Ensure logging happens
+            "CCHH_TEST_ENVIRONMENT": "false",  # Ensure logging happens
         }
 
         result = self.run_all_hooks(sample_events["bash_command"], env_vars)

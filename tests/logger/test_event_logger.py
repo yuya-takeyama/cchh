@@ -36,7 +36,7 @@ class TestEventLogger:
 
     def test_logger_disabled(self, sample_event, monkeypatch, temp_log_dir):
         """Test that disabled logger doesn't write files"""
-        monkeypatch.setenv("EVENT_LOGGING_ENABLED", "false")
+        monkeypatch.setenv("CCHH_EVENT_LOGGING_ENABLED", "false")
         logger = EventLogger(log_file=temp_log_dir / "test.jsonl")
         logger.handle_event(sample_event)
 

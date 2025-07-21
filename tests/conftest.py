@@ -14,13 +14,13 @@ sys.path.insert(0, str(project_root))
 @pytest.fixture(autouse=True)
 def test_environment():
     """Automatically set TEST_ENVIRONMENT for all tests"""
-    original = os.environ.get("TEST_ENVIRONMENT")
-    os.environ["TEST_ENVIRONMENT"] = "true"
+    original = os.environ.get("CCHH_TEST_ENVIRONMENT")
+    os.environ["CCHH_TEST_ENVIRONMENT"] = "true"
     yield
     if original is None:
-        os.environ.pop("TEST_ENVIRONMENT", None)
+        os.environ.pop("CCHH_TEST_ENVIRONMENT", None)
     else:
-        os.environ["TEST_ENVIRONMENT"] = original
+        os.environ["CCHH_TEST_ENVIRONMENT"] = original
 
 
 @pytest.fixture
@@ -40,21 +40,20 @@ def temp_log_dir(tmp_path):
 @pytest.fixture
 def mock_slack_config(monkeypatch):
     """Mock Slack configuration"""
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
-    monkeypatch.setenv("SLACK_CHANNEL_ID", "C1234567890")
-    monkeypatch.setenv("SLACK_NOTIFICATIONS_ENABLED", "true")
+    monkeypatch.setenv("CCHH_SLACK_BOT_TOKEN", "xoxb-test-token")
+    monkeypatch.setenv("CCHH_SLACK_CHANNEL_ID", "C1234567890")
+    monkeypatch.setenv("CCHH_SLACK_NOTIFICATIONS_ENABLED", "true")
 
 
 @pytest.fixture
 def mock_zunda_config(monkeypatch):
     """Mock Zunda configuration"""
-    monkeypatch.setenv("ZUNDA_SPEAKER_ENABLED", "true")
-    monkeypatch.setenv("ZUNDA_SPEAK_SPEED", "1.2")
+    monkeypatch.setenv("CCHH_ZUNDA_SPEAKER_ENABLED", "true")
 
 
 @pytest.fixture
 def disable_all_features(monkeypatch):
     """Disable all notification features"""
-    monkeypatch.setenv("SLACK_NOTIFICATIONS_ENABLED", "false")
-    monkeypatch.setenv("ZUNDA_SPEAKER_ENABLED", "false")
-    monkeypatch.setenv("EVENT_LOGGING_ENABLED", "false")
+    monkeypatch.setenv("CCHH_SLACK_NOTIFICATIONS_ENABLED", "false")
+    monkeypatch.setenv("CCHH_ZUNDA_SPEAKER_ENABLED", "false")
+    monkeypatch.setenv("CCHH_EVENT_LOGGING_ENABLED", "false")

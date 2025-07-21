@@ -226,7 +226,7 @@ class TestZundaSpeaker:
 
     def test_disabled_via_env(self):
         """Test that speaker can be disabled via environment"""
-        with patch.dict(os.environ, {"ZUNDA_SPEAKER_ENABLED": "false"}, clear=True):
+        with patch.dict(os.environ, {"CCHH_ZUNDA_SPEAKER_ENABLED": "false"}, clear=True):
             # Need to re-import the config to pick up the environment variable
             with patch("src.zunda.speaker.zunda_config") as mock_config:
                 mock_config.enabled = False

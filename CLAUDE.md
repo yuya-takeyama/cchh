@@ -166,26 +166,26 @@ cchh/
 ### Environment Variables
 
 #### Slack Configuration
-- `SLACK_BOT_TOKEN`: Slack Bot Token (xoxb-...)
-- `SLACK_CHANNEL_ID`: Notification channel ID
-- `SLACK_NOTIFICATIONS_ENABLED`: Enable/disable Slack notifications (default: true)
-- `SLACK_SHOW_SESSION_START`: Show cwd on session start (default: true)
-- `SLACK_NOTIFY_ON_TOOL_USE`: Notify on tool usage (default: true)
-- `SLACK_NOTIFY_ON_STOP`: Notify on stop events (default: true)
-- `SLACK_COMMAND_MAX_LENGTH`: Max command display length (default: 200)
+- `CCHH_SLACK_BOT_TOKEN`: Slack Bot Token (xoxb-...)
+- `CCHH_SLACK_CHANNEL_ID`: Notification channel ID
+- `CCHH_SLACK_NOTIFICATIONS_ENABLED`: Enable/disable Slack notifications (default: true)
+- `CCHH_SLACK_SHOW_SESSION_START`: Show cwd on session start (default: true)
+- `CCHH_SLACK_NOTIFY_ON_TOOL_USE`: Notify on tool usage (default: true)
+- `CCHH_SLACK_NOTIFY_ON_STOP`: Notify on stop events (default: true)
+- `CCHH_SLACK_COMMAND_MAX_LENGTH`: Max command display length (default: 200)
 
 #### Zunda Voice Configuration
-- `ZUNDA_SPEAKER_ENABLED`: Enable/disable voice feedback (default: true)
-- `ZUNDA_SPEAK_ON_PROMPT_SUBMIT`: Speak on prompt submit (default: true)
-- `ZUNDA_SPEAK_SPEED`: Speech speed (default: 1.2)
+- `CCHH_ZUNDA_SPEAKER_ENABLED`: Enable/disable voice feedback (default: true)
+- `CCHH_ZUNDA_SPEAK_ON_PROMPT_SUBMIT`: Speak on prompt submit (default: true)
 
 #### Event Logging Configuration
-- `EVENT_LOGGING_ENABLED`: Enable/disable event logging (default: true)
-- `LOG_MAX_SIZE_MB`: Max log file size in MB (default: 100)
-- `LOG_ROTATION_COUNT`: Log rotation count (default: 5)
+- `CCHH_EVENT_LOGGING_ENABLED`: Enable/disable event logging (default: true)
+- `CCHH_LOG_MAX_SIZE_MB`: Max log file size in MB (default: 100)
+- `CCHH_LOG_ROTATION_COUNT`: Log rotation count (default: 5)
 
 #### Other
-- `TEST_ENVIRONMENT`: Test environment flag (disables notifications during tests)
+- `CCHH_TEST_ENVIRONMENT`: Test environment flag (disables notifications during tests)
+- `CCHH_CLAUDE_SESSION_ID`: Claude session ID
 
 ## Code Quality Configuration
 
@@ -307,11 +307,11 @@ Add to Claude Code settings (`~/.claude/settings.json`):
 
 ### Common Issues
 1. **Import errors**: Ensure PYTHONPATH includes project root
-2. **Slack not working**: Check SLACK_BOT_TOKEN and SLACK_CHANNEL_ID
+2. **Slack not working**: Check CCHH_SLACK_BOT_TOKEN and CCHH_SLACK_CHANNEL_ID
 3. **Tests failing**: Run `uv sync` to update dependencies
 
 ### Debug Mode
-Set `TEST_ENVIRONMENT=1` to disable external notifications during development.
+Set `CCHH_TEST_ENVIRONMENT=1` to disable external notifications during development.
 
 ## Development Guidelines
 

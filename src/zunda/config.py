@@ -22,11 +22,10 @@ class ZundaConfig:
 
     def __init__(self):
         # Zunda settings
-        self.enabled = self._get_bool_env("ZUNDA_SPEAKER_ENABLED", True)
+        self.enabled = self._get_bool_env("CCHH_ZUNDA_SPEAKER_ENABLED", True)
         self.speak_on_prompt_submit = self._get_bool_env(
-            "ZUNDA_SPEAK_ON_PROMPT_SUBMIT", True
+            "CCHH_ZUNDA_SPEAK_ON_PROMPT_SUBMIT", True
         )
-        self.speak_speed = float(os.environ.get("ZUNDA_SPEAK_SPEED", "1.2"))
         self.default_style = ZundaspeakStyle.NORMAL
 
         # Silent commands (commands that should not be spoken)
