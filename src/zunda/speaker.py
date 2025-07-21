@@ -36,6 +36,8 @@ ZUNDAMON_MESSAGES = {
     "Claude has finished": "終わったのだ",
     # Stop message
     "session_end": "作業が終わったのだ。次は何をするのだ？",
+    # PreCompact message
+    "pre_compact": "コンテキストが長くなってきたのだ。そろそろ新しいセッションを始めるのがおすすめなのだ",
 }
 
 
@@ -63,6 +65,8 @@ class ZundaSpeaker(BaseHandler):
             self._handle_notification(event)
         elif event.hook_event_name in (HookEventName.STOP, "Stop"):
             self._handle_stop(event)
+        elif event.hook_event_name in (HookEventName.PRE_COMPACT, "PreCompact"):
+            self._handle_pre_compact(event)
 
     def _handle_pre_tool_use(self, event: HookEvent) -> None:
         """Handle PreToolUse event"""
@@ -136,6 +140,11 @@ class ZundaSpeaker(BaseHandler):
         from .config import ZundaspeakStyle
 
         self._speak(ZUNDAMON_MESSAGES["session_end"], style=ZundaspeakStyle.SEXY.value)
+    
+    def _handle_pre_compact(self, event: HookEvent) -> None:
+        """Handle PreCompact event"""
+        _ = event  # Unused
+        self._speak(ZUNDAMON_MESSAGES["pre_compact"])
 
     def _speak(self, message: str, style: str | None = None) -> None:
         """Send voice notification via zundaspeak"""

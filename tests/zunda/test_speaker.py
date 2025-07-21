@@ -200,6 +200,22 @@ class TestZundaSpeaker:
                 speaker = ZundaSpeaker()
                 assert not speaker.enabled
 
+    def test_handle_pre_compact(self, zunda_speaker):
+        """Test handling of PreCompact event"""
+        event = HookEvent(
+            hook_event_name="PreCompact",
+            session_id="test-session",
+            cwd="/test",
+        )
+        
+        with patch("subprocess.run") as mock_run:
+            zunda_speaker.handle_event(event)
+            
+            mock_run.assert_called_once()
+            args = mock_run.call_args[0][0]
+            assert "コンテキストが長くなってきたのだ" in args[3]
+            assert "新しいセッション" in args[3]
+    
     def test_git_commands_formatting(self, zunda_speaker):
         """Test various git commands are formatted correctly"""
         git_commands = [

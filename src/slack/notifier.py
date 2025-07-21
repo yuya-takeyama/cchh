@@ -63,6 +63,8 @@ class SlackNotifier(BaseHandler):
             "UserPromptSubmit",
         ):
             self._handle_user_prompt_submit(event, session_tracker)
+        elif event.hook_event_name in (HookEventName.PRE_COMPACT, "PreCompact"):
+            self._handle_pre_compact(event, session_tracker)
 
     def _handle_session_start(
         self, event: HookEvent, session_tracker: SlackSessionTracker
@@ -177,6 +179,16 @@ class SlackNotifier(BaseHandler):
             session_tracker,
             event.cwd,
             broadcast=True,
+        )
+    
+    def _handle_pre_compact(
+        self, event: HookEvent, session_tracker: SlackSessionTracker
+    ) -> None:
+        """Handle PreCompact event"""
+        message = "⚠️ コンテキストが長くなってきました。新しいセッションの開始を検討してください。"
+        self._send_notification(
+            message, NotificationLevel.THREAD, session_tracker, event.cwd,
+            broadcast=True
         )
 
     def _send_notification(

@@ -13,6 +13,7 @@ class HookEventName(Enum):
     NOTIFICATION = "Notification"
     STOP = "Stop"
     USER_PROMPT_SUBMIT = "UserPromptSubmit"
+    PRE_COMPACT = "PreCompact"
 
 
 @dataclass
