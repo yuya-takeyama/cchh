@@ -229,6 +229,10 @@ self.parts_limit = {
 
 - **event_logger.sh**: イベントをJSONL形式でログに記録するシェルスクリプト
 
+## Documentation
+
+- [Developer Guide](DEVELOPER.md) - Detailed technical documentation for contributors
+
 ## License
 
 MIT License - see the [LICENSE](LICENSE) file for details.
