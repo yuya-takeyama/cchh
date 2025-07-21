@@ -60,7 +60,7 @@ class TestZundaSpeaker:
             mock_run.assert_called_once()
             args = mock_run.call_args[0][0]
             assert "エヌピーエム" in args[3]
-            assert "ラン" in args[3]
+            assert "run" in args[3]
 
     def test_handle_pre_tool_use_task(self, zunda_speaker):
         """Test handling of Task tool"""
@@ -155,8 +155,8 @@ class TestZundaSpeaker:
 
             args = mock_run.call_args[0][0]
             message = args[3]
-            assert "ギット" in message
-            assert "コミット" in message
+            assert "git" in message
+            assert "commit" in message
             # Long commit message should be simplified
             assert "Fix issue #123" not in message
 
@@ -203,10 +203,10 @@ class TestZundaSpeaker:
     def test_git_commands_formatting(self, zunda_speaker):
         """Test various git commands are formatted correctly"""
         git_commands = [
-            ("git status", "ギットステータス"),
-            ("git push origin main", "ギットプッシュ"),
-            ("git pull", "ギットプル"),
-            ("git checkout -b feature", "ギットチェックアウト"),
+            ("git status", "git status"),
+            ("git push origin main", "git push"),
+            ("git pull", "git pull"),
+            ("git checkout -b feature", "git checkout"),
         ]
 
         for cmd, expected_phrase in git_commands:
@@ -231,13 +231,13 @@ class TestZundaSpeaker:
     def test_uv_commands_formatting(self, zunda_speaker):
         """Test various uv commands are formatted correctly"""
         uv_commands = [
-            ("uv run task test", "ユーブイ ラン タスク test"),
-            ("uv run task build", "ユーブイ ラン タスク build"),
-            ("uv run pytest", "ユーブイ ラン パイテスト"),
-            ("uv run mypy src", "ユーブイ ラン マイパイ"),
-            ("uv sync", "ユーブイ シンク"),
-            ("uv add requests", "ユーブイ アド"),
-            ("uv pip install numpy", "ユーブイ ピップ"),
+            ("uv run task test", "uv run task test"),
+            ("uv run task build", "uv run task build"),
+            ("uv run pytest", "uv run pytest"),
+            ("uv run mypy src", "uv run mypy"),
+            ("uv sync", "uv sync"),
+            ("uv add requests", "uv add"),
+            ("uv pip install numpy", "uv pip"),
         ]
 
         for command, expected_formatted in uv_commands:

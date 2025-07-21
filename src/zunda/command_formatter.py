@@ -7,56 +7,46 @@ class CommandFormatter:
     """Formats commands for voice synthesis (simplified)"""
 
     def __init__(self):
-        # コマンド名の日本語読み上げマップ
-        self.command_map = {
-            "python": "パイソン",
-            "python3": "パイソン",
+        # Rule 1: Word to pronunciation mapping (minimal set)
+        self.words: dict[str, str] = {
             "npm": "エヌピーエム",
             "pnpm": "ピーエヌピーエム",
-            "yarn": "ヤーン",
-            "git": "ギット",
-            "docker": "ドッカー",
-            "kubectl": "キューブコントロール",
-            "terraform": "テラフォーム",
-            "make": "メイク",
-            "cargo": "カーゴ",
-            "rustc": "ラストシー",
-            "go": "ゴー",
-            "node": "ノード",
-            "deno": "ディーノ",
-            "bun": "バン",
-            "curl": "カール",
-            "wget": "ダブルゲット",
-            "ssh": "エスエスエイチ",
-            "scp": "エスシーピー",
-            "rsync": "アールシンク",
-            "grep": "グレップ",
-            "find": "ファインド",
-            "sed": "セド",
-            "awk": "オーク",
-            "chmod": "チーエムオーディー",
-            "chown": "チーオウン",
-            "sudo": "スードゥー",
-            "apt": "エーピーティー",
-            "brew": "ブリュー",
-            "pip": "ピップ",
-            "poetry": "ポエトリー",
-            "uv": "ユーブイ",
-            "ruff": "ラフ",
-            "pytest": "パイテスト",
-            "mypy": "マイパイ",
-            "black": "ブラック",
-            "eslint": "イーエスリント",
-            "prettier": "プリティア",
-            "jest": "ジェスト",
-            "vitest": "ヴィテスト",
-            "vite": "ヴィート",
-            "webpack": "ウェブパック",
-            "parcel": "パーセル",
-            "rollup": "ロールアップ",
-            "tsc": "ティーエスシー",
             "tsx": "ティーエスエックス",
-            "ts-node": "ティーエスノード",
+        }
+        
+        # Rule 2: How many parts to read for each command pattern
+        self.parts_limit: dict[str, int] = {
+            # Git - command + subcommand
+            "git": 2,
+            
+            # Package managers
+            "npm": 2,
+            "npm run": 3,  # npm run <script>
+            "yarn": 2,
+            "yarn run": 3,
+            "pnpm": 2,
+            "pnpm run": 3,
+            
+            # UV special cases
+            "uv": 2,
+            "uv run": 3,  # uv run <command>
+            "uv run task": 4,  # uv run task <name>
+            
+            # Docker
+            "docker": 2,
+            "docker compose": 3,
+            
+            # GitHub CLI
+            "gh": 2,
+            "gh pr": 3,
+            "gh issue": 3,
+            
+            # Other tools
+            "go": 2,
+            "go mod": 3,
+            "cargo": 2,
+            "kubectl": 2,
+            "terraform": 2,
         }
 
     def format(self, command: str) -> str:
@@ -64,107 +54,38 @@ class CommandFormatter:
 
         Returns a very simplified, speakable version of the command.
         """
-        # 基本的なコマンド解析
+        # Parse command
         parsed = parse_bash_command(command)
-        cmd_name = parsed["command"]
-        args: list[str] = parsed["args"] if isinstance(parsed["args"], list) else []
-
-        # コマンド名を日本語に変換
-        readable_name = self.command_map.get(cmd_name, cmd_name)
-
-        # 特定のパターンに対する特別な処理
-        if cmd_name == "git":
-            if args and args[0] in [
-                "add",
-                "commit",
-                "push",
-                "pull",
-                "clone",
-                "checkout",
-                "branch",
-                "merge",
-            ]:
-                git_action_map = {
-                    "add": "アド",
-                    "commit": "コミット",
-                    "push": "プッシュ",
-                    "pull": "プル",
-                    "clone": "クローン",
-                    "checkout": "チェックアウト",
-                    "branch": "ブランチ",
-                    "merge": "マージ",
-                }
-                action = git_action_map.get(args[0], args[0])
-                return f"ギット{action}"
-
-        elif cmd_name in ["npm", "yarn", "pnpm"]:
-            if args and args[0] in [
-                "install",
-                "run",
-                "start",
-                "test",
-                "build",
-            ]:
-                action_map = {
-                    "install": "インストール",
-                    "run": "ラン",
-                    "start": "スタート",
-                    "test": "テスト",
-                    "build": "ビルド",
-                }
-                action = action_map.get(args[0], args[0])
-                return f"{readable_name}で{action}"
-
-        elif cmd_name == "uv":
-            # uv run task XXX の場合は4つ目まで読む
-            if len(args) >= 3 and args[0] == "run" and args[1] == "task":
-                task_name = args[2]
-                return f"ユーブイ ラン タスク {task_name}"
-            elif len(args) >= 2 and args[0] == "run":
-                # uv run pytest など
-                subcmd = args[1]
-                subcmd_readable = self.command_map.get(subcmd, subcmd)
-                return f"ユーブイ ラン {subcmd_readable}"
-            elif len(args) >= 1:
-                # uv sync, uv add など
-                subcmd = args[0]
-                subcmd_map = {
-                    "sync": "シンク",
-                    "add": "アド",
-                    "remove": "リムーブ",
-                    "pip": "ピップ",
-                    "lock": "ロック",
-                    "tool": "ツール",
-                }
-                subcmd_readable = subcmd_map.get(subcmd, subcmd)
-                return f"ユーブイ {subcmd_readable}"
-
-        elif cmd_name == "cd":
-            return "ディレクトリ移動"
-
-        elif cmd_name in ["ls", "dir"]:
-            return "ファイル一覧表示"
-
-        elif cmd_name in ["cat", "less", "more", "head", "tail"]:
-            return "ファイル内容表示"
-
-        elif cmd_name in ["vi", "vim", "nvim", "nano", "emacs"]:
-            return "エディタ起動"
-
-        elif cmd_name == "echo":
-            return "文字列出力"
-
-        elif cmd_name == "mkdir":
-            return "ディレクトリ作成"
-
-        elif cmd_name == "touch":
-            return "ファイル作成"
-
-        elif cmd_name in ["rm", "rmdir"]:
-            return "削除コマンド"
-
-        elif cmd_name in ["cp", "mv"]:
-            return "ファイル操作"
-
-        # デフォルト：コマンド名のみ
-        return f"{readable_name}"
+        parts = [parsed["command"]] + (parsed["args"] if isinstance(parsed["args"], list) else [])
+        
+        if not parts:
+            return ""
+            
+        # Rule 1: Exact command match
+        if command in self.words:
+            return self.words[command]
+            
+        # Rule 2: Determine how many parts to read
+        limit = self._get_parts_limit(parts)
+        
+        # Rule 3: Convert each part using word dictionary
+        result = []
+        for part in parts[:limit]:
+            result.append(self.words.get(part, part))
+            
+        return " ".join(result)
+        
+    def _get_parts_limit(self, parts: list[str]) -> int:
+        """Determine how many parts to read"""
+        # Check explicit limits (longest match first)
+        for length in range(min(4, len(parts)), 0, -1):
+            key = " ".join(parts[:length])
+            if key in self.parts_limit:
+                return self.parts_limit[key]
+                
+        # Check single command patterns
+        if parts and parts[0] in self.parts_limit:
+            return self.parts_limit[parts[0]]
+            
+        # Default: just the command
+        return 1
