@@ -17,7 +17,7 @@
 1. **Slack通知機能**
    - セッション開始時のcwd表示
    - 各種イベントをSlackに通知
-   - Bashコマンドを読みやすい形に整形
+   - 長すぎるコマンドは適宜省略（省略箇所は明示）
 
 2. **ずんだもん音声通知機能**
    - プロンプト送信時の音声読み上げ
@@ -43,8 +43,8 @@ cchh/
 ├── aqua/
 │
 # メインエントリーポイント
-├── hook_handler.py                     # 全イベントを処理するメインスクリプト
-├── ruff_format_hook.py                 # Ruffフォーマット専用（既存のまま）
+├── all_hooks.py                        # 全イベントを処理するメインスクリプト
+├── ruff_hook.py                        # Ruffフォーマット専用
 │
 ├── src/                                # 内部モジュール
 │   ├── __init__.py
@@ -85,7 +85,7 @@ cchh/
 └── tests/                              # テストディレクトリ
     ├── __init__.py
     ├── conftest.py
-    ├── test_hook_handler.py            # メインハンドラーのテスト
+    ├── test_all_hooks.py               # メインハンドラーのテスト
     ├── core/
     │   ├── test_dispatcher.py
     │   └── test_session.py
@@ -105,11 +105,11 @@ cchh/
 
 ### 2. 実装アーキテクチャ 🏗️
 
-#### hook_handler.py の構造
+#### all_hooks.py の構造
 
 ```python
 #!/usr/bin/env python3
-"""Claude Code Hook Handler - 全イベントを処理"""
+"""Claude Code All Hooks Handler - 全イベントを処理"""
 
 import json
 import sys
@@ -210,11 +210,15 @@ def parse_bash_command(command: str) -> dict:
 # src/slack/command_formatter.py（Slack用）
 class CommandFormatter:
     def format(self, parsed_cmd: dict) -> str:
-        """Slack通知用：ある程度詳細を残す"""
-        if len(parsed_cmd["raw"]) > 200:
-            # 長すぎる場合は省略
-            return f"{parsed_cmd['command']} {parsed_cmd['args'][0]} ..."
-        return parsed_cmd["raw"]
+        """Slack通知用：長すぎる部分は省略して<snip>で明示"""
+        raw = parsed_cmd["raw"]
+        if len(raw) > 200:
+            # 長すぎる引数は省略
+            base = f"{parsed_cmd['command']} {parsed_cmd['args'][0]}"
+            if len(parsed_cmd['args']) > 1:
+                return f"{base} <snip>"
+            return base
+        return raw
 
 # src/zunda/command_formatter.py（ずんだもん用）  
 class CommandFormatter:
@@ -230,7 +234,7 @@ class CommandFormatter:
 
 ### 3. Claude Code設定（settings.json）
 
-現状の設定をそのまま維持：
+スクリプト名の変更のみ（構造は維持）：
 
 ```json
 {
@@ -238,18 +242,18 @@ class CommandFormatter:
     "PreToolUse": [{
       "hooks": [{
         "type": "command",
-        "command": "cd ~/cchh && uv run python hook_handler.py"
+        "command": "cd ~/cchh && uv run python all_hooks.py"
       }]
     }],
     "PostToolUse": [{
       "hooks": [
         {
           "type": "command",
-          "command": "cd ~/cchh && uv run python hook_handler.py"
+          "command": "cd ~/cchh && uv run python all_hooks.py"
         },
         {
           "type": "command",
-          "command": "cd ~/cchh && uv run python ruff_format_hook.py"
+          "command": "cd ~/cchh && uv run python ruff_hook.py"
         }
       ]
     }],
@@ -290,14 +294,19 @@ ZUNDA_SPEAK_SPEED=1.2                  # 読み上げ速度
    - 各機能を独立したクラスとして実装
 
 3. **メインハンドラーの更新**
-   - `hook_handler.py` をディスパッチャーパターンに変更
+   - `hook_handler.py` → `all_hooks.py` にリネーム
+   - `ruff_format_hook.py` → `ruff_hook.py` にリネーム
+   - ディスパッチャーパターンで実装
    - 全イベントを受け取って適切に振り分け
 
 4. **テストの更新**
    - モジュール化に合わせてテストを更新
    - 統合テストを追加
 
-5. **ドキュメントの更新**
+5. **設定ファイルの更新**
+   - settings.jsonのコマンドをall_hooks.py、ruff_hook.pyに変更
+
+6. **ドキュメントの更新**
    - README.mdに新しい構造を反映
    - 環境変数の説明を追加
 
