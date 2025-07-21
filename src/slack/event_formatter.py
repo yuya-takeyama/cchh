@@ -19,6 +19,8 @@ SLACK_MESSAGES = {
     "command_important": "⚡ コマンド実行: `{command}`",
     # File operation messages
     "file_operation": "📝 ファイル{operation}: `{filename}`",
+    # Web fetch messages
+    "web_fetch": "🌐 Web取得: {url}",
     # Todo messages
     "todo_update": "📋 TODO更新",
     "todo_update_detail": "---\n📋 TODO更新:\n{todos}\n---",
@@ -163,6 +165,11 @@ class EventFormatter:
         message = SLACK_MESSAGES["file_operation"].format(
             operation=operation, filename=relative_path
         )
+        return message, NotificationLevel.THREAD
+
+    def format_web_fetch(self, url: str) -> tuple[str, NotificationLevel]:
+        """Format web fetch message"""
+        message = SLACK_MESSAGES["web_fetch"].format(url=url)
         return message, NotificationLevel.THREAD
 
     def format_tool_error(

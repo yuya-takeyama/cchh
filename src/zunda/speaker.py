@@ -17,6 +17,8 @@ ZUNDAMON_MESSAGES = {
     "task_with_description": "タスク「{description}」を実行するのだ",
     # Bash command messages
     "bash_command": "コマンド『{command}』発射するのだ",
+    # WebFetch messages
+    "web_fetch": "ウェブサイト『{url}』をチェックするのだ",
     # TodoWrite messages
     "todo_write": "To Doを書き込むのだ",
     # Notification translations
@@ -29,6 +31,7 @@ ZUNDAMON_MESSAGES = {
     "Claude needs your permission to use TodoWrite": "TODO更新の許可が欲しいのだ",
     "Claude needs your permission to use WebSearch": "Web検索の許可が欲しいのだ",
     "Claude needs your permission to use WebFetch": "Webアクセスの許可が欲しいのだ",
+    "Claude needs your permission to use Fetch": "Webアクセスの許可が欲しいのだ",
     "Claude needs your permission to use Grep": "ファイル検索の許可が欲しいのだ",
     "Claude needs your permission to use Glob": "ファイル探索の許可が欲しいのだ",
     "Claude needs your permission to use LS": "フォルダ閲覧の許可が欲しいのだ",
@@ -109,6 +112,16 @@ class ZundaSpeaker(BaseHandler):
         elif event.tool_name == "TodoWrite":
             # TodoWriteは読み上げない（通知が多すぎるため）
             pass
+
+        elif event.tool_name == "WebFetch":
+            url = event.tool_input.get("url", "")
+            if url:
+                # URLを読みやすく短縮
+                import urllib.parse
+
+                parsed_url = urllib.parse.urlparse(url)
+                domain = parsed_url.netloc or url[:50]  # ドメインまたは最初の50文字
+                voice_message = ZUNDAMON_MESSAGES["web_fetch"].format(url=domain)
 
         if voice_message:
             self._speak(voice_message)
