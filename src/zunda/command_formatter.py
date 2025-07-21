@@ -95,7 +95,7 @@ class CommandFormatter:
                     "merge": "マージ",
                 }
                 action = git_action_map.get(args[0], args[0])
-                return f"ギット{action}を実行"
+                return f"ギット{action}"
 
         elif cmd_name in ["npm", "yarn", "pnpm"]:
             if args and args[0] in [
@@ -113,7 +113,7 @@ class CommandFormatter:
                     "build": "ビルド",
                 }
                 action = action_map.get(args[0], args[0])
-                return f"{readable_name}で{action}を実行"
+                return f"{readable_name}で{action}"
 
         elif cmd_name == "cd":
             return "ディレクトリ移動"
@@ -142,5 +142,5 @@ class CommandFormatter:
         elif cmd_name in ["cp", "mv"]:
             return "ファイル操作"
 
-        # デフォルト：コマンド名 + "を実行"
-        return f"{readable_name}を実行"
+        # デフォルト：コマンド名のみ
+        return f"{readable_name}"

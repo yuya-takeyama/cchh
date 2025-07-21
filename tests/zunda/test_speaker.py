@@ -61,7 +61,6 @@ class TestZundaSpeaker:
             args = mock_run.call_args[0][0]
             assert "エヌピーエム" in args[3]
             assert "ラン" in args[3]
-            assert "実行" in args[3]
 
     def test_handle_pre_tool_use_task(self, zunda_speaker):
         """Test handling of Task tool"""
