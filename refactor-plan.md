@@ -1,38 +1,20 @@
 # Python Scripts Refactoring Plan 📋
 
-## Claude Code Hooks の正しい理解 🎯
+## 方針：単一エントリーポイント + 内部モジュール化 🎯
 
-Claude Code Hooksは、Claude Codeの特定のイベントに対してカスタムコマンドを実行する仕組みです。
-各フックは**完全に独立**しており、設定ファイルで個別に登録されます。
+開発初期段階では、設定ファイルを頻繁に変更せずに済む**単一エントリーポイント方式**を採用します。
 
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {"type": "command", "command": "/path/to/slack_notifier.py"},
-          {"type": "command", "command": "/path/to/ruff_format.py"}
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {"type": "command", "command": "/path/to/zunda_speaker.py"}
-        ]
-      }
-    ]
-  }
-}
-```
+### 利点
+- 設定ファイル（settings.json）の変更が不要
+- 要件変更に柔軟に対応可能
+- 全イベントを一箇所で処理できるため、デバッグが容易
+- uv run での実行が統一的
 
 ## 現状分析 🔍
 
-現在の`hook_handler.py`は、本来独立すべき複数の機能を1つにまとめてしまっています：
+現在の`hook_handler.py`は、全てのClaude Codeイベントを受け取り、内部で処理を分岐しています：
 
-1. **セッション開始通知** - 新規セッション時のcwd表示
+1. **セッション管理** - 新規セッション時のcwd表示
 2. **Slack通知** - 各種イベントをSlackに通知
 3. **ずんだもん音声通知** - プロンプト送信時の音声読み上げ
 4. **イベントロギング** - 全イベントをJSONLファイルに記録
@@ -40,304 +22,227 @@ Claude Code Hooksは、Claude Codeの特定のイベントに対してカスタ�
 
 その他の独立したスクリプト：
 - **Ruff Format Hook** (`ruff_format_hook.py`) - ファイル編集後の自動フォーマット
-- **Event Logger** (`event_logger.sh`) - シェルスクリプト版のイベントロガー
 
-## リファクタリング方針 🎯
+## リファクタリング方針 🚀
 
 ### 1. ディレクトリ構造
 
 ```
 cchh/
-├── pyproject.toml                      # プロジェクト設定（統一）
+├── pyproject.toml                      # プロジェクト設定
 ├── uv.lock
 ├── README.md
 ├── DEVELOPER.md
 ├── LICENSE
 ├── aqua/
 │
-# 独立したフックスクリプト（Claude Code設定で個別に登録）
-├── session_notifier.py                 # セッション開始時のcwd表示等
-├── slack_notifier.py                   # Slack通知フック
-├── zunda_speaker.py                    # ずんだもん音声通知フック
-├── event_logger.py                     # イベントロギングフック
-├── command_beautifier.py               # コマンド美化フック（Slack連携用）
-├── ruff_format.py                      # Ruffフォーマットフック
+# メインエントリーポイント
+├── hook_handler.py                     # 全イベントを処理するメインスクリプト
+├── ruff_format_hook.py                 # Ruffフォーマット専用（既存のまま）
 │
-├── src/                                # 共通パッケージディレクトリ
+├── src/                                # 内部モジュール
 │   ├── __init__.py
-│   ├── shared/                         # 共通ユーティリティ
+│   ├── core/                           # コア機能
 │   │   ├── __init__.py
-│   │   ├── types.py                    # HookEvent等の型定義
-│   │   ├── utils.py                    # JSON I/O、セッション管理等
-│   │   ├── constants.py                # 共通定数
-│   │   └── session.py                  # セッション管理ロジック
+│   │   ├── dispatcher.py               # イベントディスパッチャー
+│   │   ├── session.py                  # セッション管理
+│   │   └── types.py                    # 型定義（HookEvent等）
 │   │
-│   ├── notifiers/                      # 通知実装
+│   ├── handlers/                       # イベントハンドラー
 │   │   ├── __init__.py
-│   │   ├── slack.py                    # Slack通知実装
-│   │   └── zunda.py                    # ずんだもん音声実装
+│   │   ├── base.py                    # ベースハンドラークラス
+│   │   ├── pre_tool_use.py            # PreToolUseハンドラー
+│   │   ├── post_tool_use.py           # PostToolUseハンドラー
+│   │   ├── user_prompt_submit.py      # UserPromptSubmitハンドラー
+│   │   ├── notification.py            # Notificationハンドラー
+│   │   ├── stop.py                    # Stop/SubagentStopハンドラー
+│   │   └── pre_compact.py             # PreCompactハンドラー
 │   │
-│   ├── formatters/                     # フォーマッター実装
+│   ├── features/                       # 機能実装
 │   │   ├── __init__.py
-│   │   ├── command.py                  # コマンド変換ロジック
-│   │   └── ruff.py                     # Ruffフォーマットロジック
+│   │   ├── session_notifier.py        # セッション開始通知
+│   │   ├── slack_notifier.py          # Slack通知
+│   │   ├── zunda_speaker.py           # ずんだもん音声
+│   │   ├── event_logger.py            # イベントロギング
+│   │   └── command_beautifier.py      # コマンド美化
 │   │
-│   └── loggers/                        # ロガー実装
+│   └── utils/                          # ユーティリティ
 │       ├── __init__.py
-│       └── event.py                    # イベントロギング実装
+│       ├── config.py                   # 設定管理
+│       ├── logger.py                   # ロギング基盤
+│       └── io_helpers.py              # JSON I/O等
 │
 └── tests/                              # テストディレクトリ
     ├── __init__.py
-    ├── conftest.py                     # pytest共通設定
-    ├── test_session_notifier.py
-    ├── test_slack_notifier.py
-    ├── test_zunda_speaker.py
-    ├── test_event_logger.py
-    ├── test_command_beautifier.py
-    ├── test_ruff_format.py
-    └── integration/                    # 統合テスト
-        ├── test_hook_combinations.py   # 複数フックの組み合わせテスト
-        └── test_real_events.py         # 実際のイベントデータでのテスト
+    ├── conftest.py
+    ├── test_hook_handler.py            # メインハンドラーのテスト
+    ├── core/
+    │   ├── test_dispatcher.py
+    │   └── test_session.py
+    ├── handlers/
+    │   ├── test_pre_tool_use.py
+    │   └── ...
+    ├── features/
+    │   ├── test_slack_notifier.py
+    │   ├── test_zunda_speaker.py
+    │   └── ...
+    └── integration/
+        └── test_real_events.py
 ```
 
-### 2. 各フックスクリプトの役割 📝
+### 2. 実装アーキテクチャ 🏗️
 
-#### session_notifier.py
-- **イベント**: PreToolUse（最初のツール使用時）
-- **機能**: 新規セッション開始時にcwdを表示
-- **設定例**: 
-  ```json
-  "PreToolUse": [{
-    "hooks": [{"type": "command", "command": "./session_notifier.py"}]
-  }]
-  ```
-
-#### slack_notifier.py
-- **イベント**: PostToolUse, Notification, Stop等
-- **機能**: 各種イベントをSlackに通知
-- **設定例**:
-  ```json
-  "PostToolUse": [{
-    "matcher": "Write|Edit|MultiEdit",
-    "hooks": [{"type": "command", "command": "./slack_notifier.py"}]
-  }]
-  ```
-
-#### zunda_speaker.py
-- **イベント**: UserPromptSubmit
-- **機能**: ユーザープロンプトをずんだもんが読み上げ
-- **設定例**:
-  ```json
-  "UserPromptSubmit": [{
-    "hooks": [{"type": "command", "command": "./zunda_speaker.py"}]
-  }]
-  ```
-
-#### event_logger.py
-- **イベント**: 全イベント
-- **機能**: イベントデータをJSONLファイルに記録
-- **設定例**: 各イベントに追加
-
-#### command_beautifier.py
-- **イベント**: PreToolUse（Bashツール使用時）
-- **機能**: Bashコマンドを日本語に変換してSlackに送信
-- **設定例**:
-  ```json
-  "PreToolUse": [{
-    "matcher": "Bash",
-    "hooks": [{"type": "command", "command": "./command_beautifier.py"}]
-  }]
-  ```
-
-#### ruff_format.py
-- **イベント**: PostToolUse（ファイル編集後）
-- **機能**: Pythonファイルを自動フォーマット
-- **設定例**:
-  ```json
-  "PostToolUse": [{
-    "matcher": "Write|Edit|MultiEdit",
-    "hooks": [{"type": "command", "command": "./ruff_format.py"}]
-  }]
-  ```
-
-### 3. 実装の詳細 📝
-
-#### 3.1 各フックスクリプトの実装パターン
-
-各フックは以下の基本構造を持ちます：
+#### hook_handler.py の構造
 
 ```python
 #!/usr/bin/env python3
-"""セッション開始通知フック"""
+"""Claude Code Hook Handler - 全イベントを処理"""
 
 import json
 import sys
-from src.shared.utils import load_hook_event
-from src.shared.session import SessionManager
+from src.core.dispatcher import EventDispatcher
+from src.utils.io_helpers import load_hook_event
 
 def main():
     # イベントデータを読み込み
     event = load_hook_event(sys.stdin)
     
-    # セッション管理
-    session_mgr = SessionManager(event.session_id)
+    # ディスパッチャーで適切なハンドラーに振り分け
+    dispatcher = EventDispatcher()
+    dispatcher.dispatch(event)
     
-    # 新規セッションの場合のみ処理
-    if session_mgr.is_new_session:
-        # cwd表示などの処理
-        print(f"📁 Working directory: {event.cwd}")
-    
-    # 正常終了
-    sys.exit(0)
+    # 元のイベントデータを出力（透過性を保つ）
+    print(json.dumps(event.to_dict()))
 
 if __name__ == "__main__":
     main()
 ```
 
-#### 3.2 共通機能の抽出
+#### イベントディスパッチャー
 
-以下の機能を `src.shared` に抽出：
-- `HookEvent` - イベントデータの型定義
-- `load_hook_event()` - JSON入力のパース
-- `SessionManager` - セッション状態の管理
-- 各種設定の読み込み（環境変数、設定ファイル）
-
-#### 3.3 フック間の連携
-
-各フックは**完全に独立**していますが、必要に応じて連携できます：
-
-1. **直接連携なし** - Claude Codeが各フックを個別に呼び出す
-2. **データ共有** - 必要に応じてファイルやDBを介して状態を共有
-3. **設定の統一** - 環境変数や設定ファイルで挙動を制御
-
-### 4. テスト・リント・フォーマット・型チェックの統合 🧪
-
-`pyproject.toml` の taskipy 設定を更新：
-
-```toml
-[tool.taskipy.tasks]
-test = "pytest tests/"
-lint = "ruff check ."
-format = "ruff format ."
-typecheck = "mypy src/ *.py"
-all = "task format && task lint && task typecheck && task test"
+```python
+# src/core/dispatcher.py
+class EventDispatcher:
+    def __init__(self):
+        self.handlers = self._init_handlers()
+        self.features = self._init_features()
+    
+    def dispatch(self, event: HookEvent):
+        # イベントタイプに応じてハンドラーを実行
+        handler = self.handlers.get(event.hook_event_name)
+        if handler:
+            handler.handle(event, self.features)
 ```
 
-### 5. 移行手順 🚀
+#### 機能の分離
 
-1. **作業ブランチの作成**
-   - `yuya-takeyama/feat/refactor-python-scripts`
+各機能は独立したクラスとして実装し、必要に応じて有効/無効を切り替え可能：
 
-2. **ディレクトリ構造の作成**
-   - `src/` とサブパッケージの作成
-   - `tests/` の再構成
+```python
+# src/features/slack_notifier.py
+class SlackNotifier:
+    def __init__(self):
+        self.enabled = os.getenv("SLACK_NOTIFICATIONS_ENABLED", "true").lower() == "true"
+    
+    def notify(self, event: HookEvent, message: str):
+        if not self.enabled:
+            return
+        # Slack通知の実装
+```
 
-3. **コードの分割と移行**
-   - 既存の `hook_handler/` から機能を分割：
-     - セッション管理 → `session_notifier.py`
-     - Slack通知 → `slack_notifier.py`
-     - ずんだもん通知 → `zunda_speaker.py`
-     - イベントロギング → `event_logger.py`
-     - コマンド美化 → `command_beautifier.py`
-   - `ruff_format_hook.py` → `ruff_format.py` にリネーム
-   - 共通ロジックを `src/` に抽出
+### 3. Claude Code設定（settings.json）
 
-4. **各フックスクリプトの作成**
-   - 各機能を独立したスクリプトとして実装
-   - 共通処理は `src/` のモジュールを利用
-
-5. **テストの移行と更新**
-   - 既存のテストを新しい構造に合わせて移行
-   - import パスの更新
-
-6. **設定ファイルの更新**
-   - `pyproject.toml` の更新
-   - GitHub Actions や他の CI/CD 設定の更新（必要に応じて）
-
-### 6. Claude Code設定の例 ⚙️
-
-リファクタリング後のClaude Code設定（`.claude/settings.json`）：
+現状の設定をそのまま維持：
 
 ```json
 {
   "hooks": {
-    "PreToolUse": [
-      {
-        "hooks": [
-          {"type": "command", "command": "~/cchh/session_notifier.py"},
-          {"type": "command", "command": "~/cchh/event_logger.py"}
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {"type": "command", "command": "~/cchh/command_beautifier.py"}
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {"type": "command", "command": "~/cchh/slack_notifier.py"},
-          {"type": "command", "command": "~/cchh/ruff_format.py"},
-          {"type": "command", "command": "~/cchh/event_logger.py"}
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {"type": "command", "command": "~/cchh/zunda_speaker.py"},
-          {"type": "command", "command": "~/cchh/event_logger.py"}
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          {"type": "command", "command": "~/cchh/slack_notifier.py"},
-          {"type": "command", "command": "~/cchh/event_logger.py"}
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {"type": "command", "command": "~/cchh/slack_notifier.py"},
-          {"type": "command", "command": "~/cchh/event_logger.py"}
-        ]
-      }
-    ]
+    "PreToolUse": [{
+      "hooks": [{
+        "type": "command",
+        "command": "cd ~/cchh && uv run python hook_handler.py"
+      }]
+    }],
+    "PostToolUse": [{
+      "hooks": [
+        {
+          "type": "command",
+          "command": "cd ~/cchh && uv run python hook_handler.py"
+        },
+        {
+          "type": "command",
+          "command": "cd ~/cchh && uv run python ruff_format_hook.py"
+        }
+      ]
+    }],
+    // ... 他のイベントも同様
   }
 }
 ```
 
-### 7. 移行のメリット 🎯
+### 4. 機能の有効/無効制御 🎛️
 
-1. **明確な責任分離**
-   - 各フックが単一の責任を持つ
-   - デバッグとテストが容易
+環境変数や設定ファイルで機能を制御：
 
-2. **柔軟な組み合わせ**
-   - 必要なフックだけを有効化
-   - イベントごとに異なる組み合わせが可能
+```bash
+# .env または環境変数
+SLACK_NOTIFICATIONS_ENABLED=true
+ZUNDA_SPEAKER_ENABLED=true
+EVENT_LOGGING_ENABLED=true
+SESSION_NOTIFIER_ENABLED=true
+COMMAND_BEAUTIFIER_ENABLED=true
 
-3. **保守性の向上**
-   - 機能追加が簡単（新しいフックスクリプトを追加するだけ）
-   - 既存機能への影響が最小限
+# 特定のイベントでのみ有効化
+SLACK_NOTIFY_ON_TOOL_USE=true
+SLACK_NOTIFY_ON_STOP=true
+ZUNDA_SPEAK_ON_PROMPT_SUBMIT=true
+```
 
-4. **パフォーマンス**
-   - 必要な処理だけを実行
-   - 並列実行による高速化
+### 5. 移行手順 📝
+
+1. **ディレクトリ構造の作成**
+   - `src/` とサブディレクトリを作成
+   - テストディレクトリを整理
+
+2. **既存コードのモジュール化**
+   - `hook_handler/` の機能を `src/` 配下に分割
+   - 各機能を独立したクラスとして実装
+
+3. **メインハンドラーの更新**
+   - `hook_handler.py` をディスパッチャーパターンに変更
+   - 全イベントを受け取って適切に振り分け
+
+4. **テストの更新**
+   - モジュール化に合わせてテストを更新
+   - 統合テストを追加
+
+5. **ドキュメントの更新**
+   - README.mdに新しい構造を反映
+   - 環境変数の説明を追加
+
+### 6. 将来の拡張性 🔮
+
+要件が安定してきたら、以下の移行が可能：
+
+1. **個別フック化**
+   - 各機能を独立したスクリプトに分離
+   - settings.jsonで個別に登録
+
+2. **CLIツール化**
+   - サブコマンド形式のCLIツールに統合
+   - `cchh hook`, `cchh format` などのコマンド体系
+
+3. **プラグインシステム**
+   - 新機能を簡単に追加できるプラグイン機構
+   - 外部パッケージからの機能追加
 
 ## まとめ ✨
 
 このリファクタリングにより：
-- Claude Code Hooksの仕組みに沿った正しい設計
-- 各機能が独立したスクリプトとして動作
-- 設定ファイルで柔軟に組み合わせ可能
-- デバッグ・テスト・保守が容易
-- 新機能の追加が簡単
+- **設定変更なし**で機能の追加・変更が可能
+- **内部モジュール化**により保守性向上
+- **単一エントリーポイント**でデバッグが容易
+- **uv run** での統一的な実行
+- 将来的な拡張への道筋も確保
 
-次のセッションでこの計画に基づいて実装を進めていきます！
+開発初期の柔軟性を保ちながら、コードの品質を向上させる実践的なアプローチです！
