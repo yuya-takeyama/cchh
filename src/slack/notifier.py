@@ -20,7 +20,9 @@ class SlackNotifier(BaseHandler):
     def __init__(self, config: RuntimeConfig | None = None):
         self.config = config or RuntimeConfig.from_environment()
         self.api_url = "https://slack.com/api/chat.postMessage"
-        self.event_formatter = EventFormatter()
+        self.event_formatter = EventFormatter(
+            session_id_length=self.config.session_id_length
+        )
         self.command_formatter = CommandFormatter()
         self.error_logger = get_error_logger()
         self._session_trackers: dict[
@@ -63,6 +65,8 @@ class SlackNotifier(BaseHandler):
             "UserPromptSubmit",
         ):
             self._handle_user_prompt_submit(event, session_tracker)
+        elif event.hook_event_name in (HookEventName.PRE_COMPACT, "PreCompact"):
+            self._handle_pre_compact(event, session_tracker)
 
     def _handle_session_start(
         self, event: HookEvent, session_tracker: SlackSessionTracker
@@ -91,16 +95,11 @@ class SlackNotifier(BaseHandler):
         elif event.tool_name == "Bash":
             cmd = event.tool_input.get("command", "")
             if cmd:
-                # Skip silent commands
-                silent_commands = ["git status", "git log", "git diff"]
-                if not any(
-                    cmd.strip().startswith(silent_cmd) for silent_cmd in silent_commands
-                ):
-                    # Format command with truncation
-                    truncated_cmd = self.command_formatter.format(cmd)
-                    result = self.event_formatter.format_command(truncated_cmd)
-                    if result[0] is not None and result[1] is not None:
-                        notifications.append((result[0], result[1]))
+                # Format command (no silent commands filtering for Slack)
+                truncated_cmd = self.command_formatter.format(cmd)
+                result = self.event_formatter.format_command(truncated_cmd)
+                if result[0] is not None and result[1] is not None:
+                    notifications.append((result[0], result[1]))
 
         elif event.tool_name == "TodoWrite":
             todos = event.tool_input.get("todos", [])
@@ -159,7 +158,11 @@ class SlackNotifier(BaseHandler):
         """Handle Stop event"""
         message = "🛑 Claude Codeセッション終了"
         self._send_notification(
-            message, NotificationLevel.THREAD, session_tracker, event.cwd
+            message,
+            NotificationLevel.THREAD,
+            session_tracker,
+            event.cwd,
+            broadcast=True,
         )
 
     def _handle_user_prompt_submit(
@@ -170,6 +173,19 @@ class SlackNotifier(BaseHandler):
             return
 
         message = self.event_formatter.format_user_prompt(event.prompt)
+        self._send_notification(
+            message,
+            NotificationLevel.THREAD,
+            session_tracker,
+            event.cwd,
+            broadcast=True,
+        )
+
+    def _handle_pre_compact(
+        self, event: HookEvent, session_tracker: SlackSessionTracker
+    ) -> None:
+        """Handle PreCompact event"""
+        message = "⚠️ コンテキストが長くなってきました。新しいセッションの開始を検討してください。"
         self._send_notification(
             message,
             NotificationLevel.THREAD,

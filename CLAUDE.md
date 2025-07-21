@@ -148,6 +148,7 @@ cchh/
 - **Notification**: Claude notifications
 - **Stop**: Session termination
 - **UserPromptSubmit**: User prompt submission
+- **PreCompact**: Context overflow warning
 
 #### Notification Systems
 - **Slack notifications**: Commands, errors, session tracking
@@ -176,7 +177,6 @@ cchh/
 
 #### Zunda Voice Configuration
 - `CCHH_ZUNDA_SPEAKER_ENABLED`: Enable/disable voice feedback (default: true)
-- `CCHH_ZUNDA_SPEAK_ON_PROMPT_SUBMIT`: Speak on prompt submit (default: true)
 
 #### Event Logging Configuration
 - `CCHH_EVENT_LOGGING_ENABLED`: Enable/disable event logging (default: true)
@@ -269,6 +269,16 @@ Add to Claude Code settings (`~/.claude/settings.json`):
       }
     ],
     "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
       {
         "hooks": [
           {

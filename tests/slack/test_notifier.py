@@ -24,6 +24,7 @@ def slack_notifier(tmp_path):
         bot_token="xoxb-test-token",
         channel_id="C1234567890",
         command_max_length=200,
+        session_id_length=8,
         thread_dir=tmp_path / "test_threads",
     )
 
@@ -91,6 +92,7 @@ class TestSlackNotifier:
             bot_token=None,  # No token means unconfigured
             channel_id=None,  # No channel means unconfigured
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
 
@@ -166,22 +168,6 @@ class TestSlackNotifier:
                     f"Command not found in message: {args[0]}"
                 )
 
-    def test_skip_silent_commands(self, slack_notifier):
-        """Test that silent commands are skipped"""
-        event = HookEvent(
-            hook_event_name="PreToolUse",
-            session_id="test-session",
-            cwd="/test",
-            tool_name="Bash",
-            tool_input={"command": "git status"},
-        )
-
-        with patch.object(slack_notifier, "_send_notification") as mock_send:
-            slack_notifier.handle_event(event)
-
-            # git status should be skipped
-            mock_send.assert_not_called()
-
     def test_handle_task_tool(self, slack_notifier):
         """Test handling of Task tool"""
         event = HookEvent(
@@ -238,6 +224,40 @@ class TestSlackNotifier:
             mock_send.assert_called()
             args = mock_send.call_args[0]
             assert "file.py" in args[0]
+
+    def test_handle_git_diff_command(self, slack_notifier):
+        """Test that git diff commands are now notified in Slack"""
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+            tool_name="Bash",
+            tool_input={"command": "git diff origin/main...HEAD"},
+        )
+
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
+
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "git diff origin/main...HEAD" in args[0]
+
+    def test_handle_git_status_command(self, slack_notifier):
+        """Test that git status commands are now notified in Slack"""
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+            tool_name="Bash",
+            tool_input={"command": "git status"},
+        )
+
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
+
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "git status" in args[0]
 
     def test_handle_post_tool_error(self, slack_notifier):
         """Test handling of tool errors"""
@@ -309,6 +329,28 @@ class TestSlackNotifier:
             mock_send.assert_called()
             args = mock_send.call_args[0]
             assert "🛑" in args[0]
+            # Check that broadcast is True
+            kwargs = mock_send.call_args[1]
+            assert kwargs.get("broadcast") is True
+
+    def test_handle_pre_compact(self, slack_notifier):
+        """Test handling of PreCompact event"""
+        event = HookEvent(
+            hook_event_name="PreCompact",
+            session_id="test-session",
+            cwd="/test",
+        )
+
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
+
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "⚠️" in args[0]
+            assert "コンテキストが長くなってきました" in args[0]
+            # Check that broadcast is True
+            kwargs = mock_send.call_args[1]
+            assert kwargs.get("broadcast") is True
 
     def test_handle_user_prompt(self, slack_notifier):
         """Test handling of user prompt"""
@@ -430,6 +472,7 @@ class TestSlackNotifier:
             bot_token="xoxb-test-token",
             channel_id="C1234567890",
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
         notifier = SlackNotifier(config=config)
@@ -451,6 +494,7 @@ class TestSlackNotifier:
             bot_token=None,  # Not configured
             channel_id=None,  # Not configured
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
         notifier = SlackNotifier(config=config)
@@ -472,6 +516,7 @@ class TestSlackNotifier:
             bot_token="xoxb-test-token",
             channel_id="C1234567890",
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
         notifier = SlackNotifier(config=config)
@@ -493,6 +538,7 @@ class TestSlackNotifier:
             bot_token="xoxb-test-token",
             channel_id="C1234567890",
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
         notifier = SlackNotifier(config=config)

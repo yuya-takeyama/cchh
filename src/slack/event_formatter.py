@@ -18,7 +18,7 @@ SLACK_MESSAGES = {
     "command_critical": "🚨 重要コマンド実行: `{command}`",
     "command_important": "⚡ コマンド実行: `{command}`",
     # File operation messages
-    "file_operation": "📝 ファイル{operation}: {filename}",
+    "file_operation": "📝 ファイル{operation}: `{filename}`",
     # Todo messages
     "todo_update": "📋 TODO更新",
     "todo_update_detail": "---\n📋 TODO更新:\n{todos}\n---",
@@ -57,10 +57,19 @@ IMPORTANT_NOTIFICATIONS = [
 class EventFormatter:
     """Formats hook events into Slack messages"""
 
+    def __init__(self, session_id_length: int = 8):
+        self.session_id_length = session_id_length
+
     def format_session_start(self, session_id: str, cwd: str) -> str:
         """Format session start message"""
+        # セッションIDを設定された文字数に短縮
+        short_session_id = (
+            session_id[: self.session_id_length]
+            if len(session_id) > self.session_id_length
+            else session_id
+        )
         return SLACK_MESSAGES["session_start"].format(
-            session_id=session_id, cwd=self._format_cwd(cwd)
+            session_id=short_session_id, cwd=self._format_cwd(cwd)
         )
 
     def format_task_start(
@@ -90,17 +99,27 @@ class EventFormatter:
         """Format command message with appropriate level"""
         # 重要コマンドの分類
         if any(command.startswith(critical_cmd) for critical_cmd in CRITICAL_COMMANDS):
-            return SLACK_MESSAGES["command_critical"].format(
-                command=command
-            ), NotificationLevel.CHANNEL
+            emoji = "🚨"
+            level = NotificationLevel.CHANNEL
         elif any(
             command.startswith(important_cmd) for important_cmd in IMPORTANT_COMMANDS
         ):
-            return SLACK_MESSAGES["command_important"].format(
-                command=command
-            ), NotificationLevel.THREAD
+            emoji = "⚡"
+            level = NotificationLevel.THREAD
         else:
-            return None, None
+            # その他のコマンドもすべてスレッドレベルで通知
+            emoji = "💻"
+            level = NotificationLevel.THREAD
+
+        # 複数行コマンドの場合はコードブロックで表示
+        if "\n" in command:
+            # コマンド内のバッククォートをエスケープ
+            escaped_command = command.replace("```", "\\`\\`\\`")
+            message = f"{emoji} コマンド実行\n```\n$ {escaped_command}\n```"
+        else:
+            message = f"{emoji} コマンド実行: `{command}`"
+
+        return message, level
 
     def format_todo_update(
         self, todos: list[dict[str, Any]]
@@ -133,8 +152,16 @@ class EventFormatter:
             # 異なるドライブの場合など、相対パス計算できない場合は絶対パス
             relative_path = file_path
 
+        # 操作名を日本語に変換
+        operation_map = {
+            "Edit": "編集",
+            "Write": "作成",
+            "MultiEdit": "編集",
+        }
+        operation = operation_map.get(tool_name, tool_name.lower())
+
         message = SLACK_MESSAGES["file_operation"].format(
-            operation=tool_name.lower(), filename=relative_path
+            operation=operation, filename=relative_path
         )
         return message, NotificationLevel.THREAD
 
@@ -199,8 +226,16 @@ class EventFormatter:
     def _format_cwd(self, cwd: str) -> str:
         """Format cwd for Slack display"""
         home = str(os.path.expanduser("~"))
+
+        # まず ~/src/github.com/ のプレフィックスを削除
+        github_prefix = os.path.join(home, "src", "github.com", "")
+        if cwd.startswith(github_prefix):
+            return cwd[len(github_prefix) :]
+
+        # それ以外の場合は $HOME を ~ に置き換え
         if cwd.startswith(home):
             return cwd.replace(home, "~", 1)
+
         return cwd
 
     def _extract_permission_tool_name(self, text: str) -> str | None:
