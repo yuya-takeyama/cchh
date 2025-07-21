@@ -115,6 +115,30 @@ class CommandFormatter:
                 action = action_map.get(args[0], args[0])
                 return f"{readable_name}で{action}"
 
+        elif cmd_name == "uv":
+            # uv run task XXX の場合は4つ目まで読む
+            if len(args) >= 3 and args[0] == "run" and args[1] == "task":
+                task_name = args[2]
+                return f"ユーブイ ラン タスク {task_name}"
+            elif len(args) >= 2 and args[0] == "run":
+                # uv run pytest など
+                subcmd = args[1]
+                subcmd_readable = self.command_map.get(subcmd, subcmd)
+                return f"ユーブイ ラン {subcmd_readable}"
+            elif len(args) >= 1:
+                # uv sync, uv add など
+                subcmd = args[0]
+                subcmd_map = {
+                    "sync": "シンク",
+                    "add": "アド",
+                    "remove": "リムーブ",
+                    "pip": "ピップ",
+                    "lock": "ロック",
+                    "tool": "ツール",
+                }
+                subcmd_readable = subcmd_map.get(subcmd, subcmd)
+                return f"ユーブイ {subcmd_readable}"
+
         elif cmd_name == "cd":
             return "ディレクトリ移動"
 

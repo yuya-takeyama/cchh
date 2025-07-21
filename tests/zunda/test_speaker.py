@@ -227,3 +227,34 @@ class TestZundaSpeaker:
                     assert expected_phrase in message, (
                         f"Expected '{expected_phrase}' in '{message}'"
                     )
+
+    def test_uv_commands_formatting(self, zunda_speaker):
+        """Test various uv commands are formatted correctly"""
+        uv_commands = [
+            ("uv run task test", "ユーブイ ラン タスク test"),
+            ("uv run task build", "ユーブイ ラン タスク build"),
+            ("uv run pytest", "ユーブイ ラン パイテスト"),
+            ("uv run mypy src", "ユーブイ ラン マイパイ"),
+            ("uv sync", "ユーブイ シンク"),
+            ("uv add requests", "ユーブイ アド"),
+            ("uv pip install numpy", "ユーブイ ピップ"),
+        ]
+
+        for command, expected_formatted in uv_commands:
+            event = HookEvent(
+                hook_event_name="PreToolUse",
+                session_id="test-session",
+                cwd="/test",
+                tool_name="Bash",
+                tool_input={"command": command},
+            )
+
+            with patch("subprocess.run") as mock_run:
+                zunda_speaker.handle_event(event)
+                mock_run.assert_called_once()
+                args = mock_run.call_args[0][0]
+                message = args[3]
+                # Check that the formatted command contains expected text
+                assert expected_formatted in message, (
+                    f"Expected '{expected_formatted}' in '{message}'"
+                )
