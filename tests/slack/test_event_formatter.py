@@ -60,7 +60,7 @@ EOF
         message, level = formatter.format_command(command)
         assert message.startswith("🚨 コマンド実行\n```\n$ ")
         assert "refactor: simplify CommandFormatter" in message
-        assert "```" in message
+        assert message.endswith("\n```")
         assert level == NotificationLevel.CHANNEL
         
     def test_format_command_multi_line_important(self, formatter):
@@ -77,6 +77,27 @@ EOF
         assert "@types/node" in message
         assert "```" in message
         assert level == NotificationLevel.THREAD
+        
+    def test_format_command_with_backticks(self, formatter):
+        """Test command containing backticks gets escaped properly"""
+        command = '''git commit -m "$(cat <<'EOF'
+feat: add code blocks using ```
+
+- Use format: emoji + "コマンド実行\n```\n$ command\n```" for multi-line
+- This adds ``` delimiters for code blocks
+EOF
+)"'''
+        
+        message, level = formatter.format_command(command)
+        assert message.startswith("🚨 コマンド実行\n```\n$ ")
+        # Check that backticks are escaped
+        assert "\\`\\`\\`" in message
+        # Check specific escaped content
+        assert "feat: add code blocks using \\`\\`\\`" in message
+        assert "- This adds \\`\\`\\` delimiters for code blocks" in message
+        # Ensure the message still ends with code block
+        assert message.endswith("\n```")
+        assert level == NotificationLevel.CHANNEL
         
     def test_format_session_start(self, formatter):
         """Test session start formatting"""

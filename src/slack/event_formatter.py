@@ -102,7 +102,9 @@ class EventFormatter:
             
         # 複数行コマンドの場合はコードブロックで表示
         if "\n" in command:
-            message = f"{emoji} コマンド実行\n```\n$ {command}\n```"
+            # コマンド内のバッククォートをエスケープ
+            escaped_command = command.replace("```", "\\`\\`\\`")
+            message = f"{emoji} コマンド実行\n```\n$ {escaped_command}\n```"
         else:
             message = f"{emoji} コマンド実行: `{command}`"
             
