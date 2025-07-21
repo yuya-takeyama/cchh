@@ -18,6 +18,9 @@ My personal Claude Code hook handlers for Slack notifications and voice feedback
 ## Setup
 
 ```bash
+# Install development tools (including uv)
+aqua install
+
 # Install dependencies
 uv sync
 
