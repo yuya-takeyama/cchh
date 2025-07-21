@@ -3,6 +3,7 @@
 import os
 import subprocess
 
+from ..core.base import BaseHandler
 from ..core.types import HookEvent
 from ..utils.logger import get_error_logger
 from .command_formatter import CommandFormatter
@@ -39,7 +40,7 @@ ZUNDAMON_MESSAGES = {
 }
 
 
-class ZundaSpeaker:
+class ZundaSpeaker(BaseHandler):
     """Handles Zunda voice notifications"""
 
     def __init__(self):
@@ -141,6 +142,7 @@ class ZundaSpeaker:
             # Permission messages use AMAAMA style
             if "permission" in text.lower():
                 from .config import ZundaspeakStyle
+
                 self._speak(voice_message, style=ZundaspeakStyle.AMAAMA.value)
             else:
                 self._speak(voice_message)
@@ -148,6 +150,7 @@ class ZundaSpeaker:
     def _handle_stop(self, event: HookEvent) -> None:
         """Handle Stop event"""
         from .config import ZundaspeakStyle
+
         self._speak(ZUNDAMON_MESSAGES["session_end"], style=ZundaspeakStyle.SEXY.value)
 
     def _speak(self, message: str, style: str | None = None) -> None:

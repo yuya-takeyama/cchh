@@ -4,13 +4,14 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from ..core.base import BaseHandler
 from ..core.types import HookEvent
 from ..utils.config import is_test_environment
 from ..utils.logger import get_debug_logger
 from .config import logger_config
 
 
-class EventLogger:
+class EventLogger(BaseHandler):
     """Logs all hook events to JSONL file"""
 
     def __init__(self, log_file: Path | None = None):

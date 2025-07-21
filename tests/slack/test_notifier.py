@@ -95,8 +95,12 @@ class TestSlackNotifier:
         mock_tracker = MagicMock()
         mock_tracker.is_new_session = True
 
-        with patch.object(slack_notifier, "_get_session_tracker", return_value=mock_tracker):
-            with patch.object(slack_notifier, "_is_test_environment", return_value=False):
+        with patch.object(
+            slack_notifier, "_get_session_tracker", return_value=mock_tracker
+        ):
+            with patch.object(
+                slack_notifier, "_is_test_environment", return_value=False
+            ):
                 with patch.object(slack_notifier, "_send_notification") as mock_send:
                     slack_notifier.handle_event(event)
 
@@ -128,7 +132,9 @@ class TestSlackNotifier:
         with patch.object(
             slack_notifier, "_get_session_tracker", return_value=mock_tracker
         ):
-            with patch.object(slack_notifier, "_is_test_environment", return_value=False):
+            with patch.object(
+                slack_notifier, "_is_test_environment", return_value=False
+            ):
                 with patch.object(slack_notifier, "_send_notification") as mock_send:
                     slack_notifier.handle_event(event)
 

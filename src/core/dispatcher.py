@@ -2,6 +2,7 @@
 
 import os
 
+from .base import HookHandler
 from .types import HookEvent
 
 
@@ -13,7 +14,7 @@ class EventDispatcher:
         self.zunda = self._init_zunda()
         self.logger = self._init_logger()
 
-    def _init_slack(self) -> object | None:
+    def _init_slack(self) -> HookHandler | None:
         """Initialize Slack notifier if enabled"""
         if os.getenv("SLACK_NOTIFICATIONS_ENABLED", "true").lower() == "true":
             try:
@@ -25,7 +26,7 @@ class EventDispatcher:
                 return None
         return None
 
-    def _init_zunda(self) -> object | None:
+    def _init_zunda(self) -> HookHandler | None:
         """Initialize Zunda speaker if enabled"""
         if os.getenv("ZUNDA_SPEAKER_ENABLED", "true").lower() == "true":
             try:
@@ -37,7 +38,7 @@ class EventDispatcher:
                 return None
         return None
 
-    def _init_logger(self) -> object | None:
+    def _init_logger(self) -> HookHandler | None:
         """Initialize event logger if enabled"""
         if os.getenv("EVENT_LOGGING_ENABLED", "true").lower() == "true":
             try:

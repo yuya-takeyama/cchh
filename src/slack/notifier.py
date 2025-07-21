@@ -6,6 +6,7 @@ import sys
 import urllib.parse
 import urllib.request
 
+from ..core.base import BaseHandler
 from ..core.types import HookEvent
 from ..utils.logger import get_error_logger
 from .command_formatter import CommandFormatter
@@ -14,7 +15,7 @@ from .event_formatter import EventFormatter
 from .session_tracker import SlackSessionTracker
 
 
-class SlackNotifier:
+class SlackNotifier(BaseHandler):
     """Handles Slack notifications for Claude Code events"""
 
     def __init__(self):

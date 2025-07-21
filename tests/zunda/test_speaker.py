@@ -257,4 +257,6 @@ class TestZundaSpeaker:
                 if mock_run.call_count > 0:
                     args = mock_run.call_args[0][0]
                     message = args[3]
-                    assert expected_phrase in message, f"Expected '{expected_phrase}' in '{message}'"
+                    assert expected_phrase in message, (
+                        f"Expected '{expected_phrase}' in '{message}'"
+                    )
