@@ -36,22 +36,99 @@ Claude Codeの設定ファイル（~/.claude/settings.json または settings.lo
 
 ```json
 {
+  "permissions": {
+    "defaultMode": "acceptEdits"
+  },
   "hooks": {
-    "preToolUse": "cd /path/to/cchh && uv run python all_hooks.py",
-    "postToolUse": [
-      "cd /path/to/cchh && uv run python all_hooks.py",
-      "cd /path/to/cchh && uv run python ruff_hook.py"
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
     ],
-    "notification": "cd /path/to/cchh && uv run python all_hooks.py",
-    "stop": "cd /path/to/cchh && uv run python all_hooks.py",
-    "userPromptSubmit": "cd /path/to/cchh && uv run python all_hooks.py"
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python ruff_hook.py"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matchers": ["manual", "auto"],
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
 注意：
-- `postToolUse`では、エラー通知（all_hooks.py）とRuffフォーマット（ruff_hook.py）の両方を実行します
-- Ruffフォーマットが不要な場合は、`ruff_hook.py`の行を削除してください
+- イベント名はPascalCase（PreToolUse, PostToolUse など）を使用します
+- 各イベントは配列形式で、その中にhooksオブジェクトを含みます
+- `PostToolUse`では、エラー通知（all_hooks.py）とRuffフォーマット（ruff_hook.py）の両方を実行します
+- Ruffフォーマットが不要な場合は、2番目のhooksオブジェクトを削除してください
+- `/path/to/cchh` は実際のCCHHリポジトリへのパスに置き換えてください
 
 ### 4. 環境変数の設定
 
@@ -259,7 +336,7 @@ self.parts_limit = {
 - **test_hook_handler.py**: hook_handler.pyのテスト実行用スクリプト
 - **test_cwd_display.py**: 現在のディレクトリ表示のテスト
 - **test_user_prompt_submit.py**: ユーザープロンプト送信のテスト
-- **ruff_format_hook.py**: Ruffフォーマッターのhook実装例
+- **ruff_hook.py**: Ruffフォーマッターのhook実装例
 
 ### ログツール
 
