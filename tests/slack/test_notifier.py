@@ -2,55 +2,43 @@
 
 import json
 import os
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.core.types import HookEvent
-from src.slack.config import NotificationLevel
+from src.slack.config import NotificationLevel, RuntimeConfig
 from src.slack.notifier import SlackNotifier
 
 
 @pytest.fixture
-def slack_notifier():
-    """Create SlackNotifier instance"""
-    # Temporarily unset TEST_ENVIRONMENT for Slack tests
-    original_test_env = os.environ.get("TEST_ENVIRONMENT")
-    os.environ.pop("TEST_ENVIRONMENT", None)
+def slack_notifier(tmp_path):
+    """Create SlackNotifier instance with test configuration"""
+    # Create test configuration (not dependent on environment variables)
+    test_config = RuntimeConfig(
+        is_test_environment=False,  # Explicitly set to False for testing
+        notifications_enabled=True,
+        show_session_start=True,
+        notify_on_tool_use=True,
+        notify_on_stop=True,
+        bot_token="xoxb-test-token",
+        channel_id="C1234567890",
+        command_max_length=200,
+        thread_dir=tmp_path / "test_threads",
+    )
 
-    try:
-        # Patch the module-level import as well
-        with patch("src.slack.config.slack_config") as mock_global_config:
-            with patch("src.slack.notifier.slack_config", mock_global_config):
-                mock_global_config.enabled = True
-                mock_global_config.is_configured = True
-                mock_global_config.bot_token = "xoxb-test-token"
-                mock_global_config.channel_id = "C1234567890"
-                mock_global_config.show_session_start = True
-                mock_global_config.notify_on_tool_use = True
-                mock_global_config.notify_on_stop = True
-                mock_global_config.thread_dir = Path("/tmp/test_threads")
+    # Create notifier with test configuration
+    notifier = SlackNotifier(config=test_config)
 
-                notifier = SlackNotifier()
-                notifier.mock_config = mock_global_config  # type: ignore
-                notifier.enabled = (
-                    True  # Force enable since it's copied from config at init
-                )
+    # Mock _get_session_tracker to return tracker with is_new_session=False
+    def mock_get_session_tracker(session_id):
+        mock_tracker = MagicMock()
+        mock_tracker.is_new_session = False
+        mock_tracker.session_id = session_id
+        return mock_tracker
 
-                # Mock _get_session_tracker to return tracker with is_new_session=False
-                def mock_get_session_tracker(session_id):
-                    mock_tracker = MagicMock()
-                    mock_tracker.is_new_session = False
-                    mock_tracker.session_id = session_id
-                    return mock_tracker
-
-                notifier._get_session_tracker = mock_get_session_tracker
-                yield notifier
-    finally:
-        # Restore TEST_ENVIRONMENT
-        if original_test_env is not None:
-            os.environ["TEST_ENVIRONMENT"] = original_test_env
+    notifier._get_session_tracker = mock_get_session_tracker
+    return notifier
 
 
 @pytest.fixture
@@ -86,33 +74,38 @@ class TestSlackNotifier:
 
     def test_disabled_notifier(self, slack_notifier, mock_event):
         """Test that disabled notifier doesn't send notifications"""
-        slack_notifier.enabled = False
+        slack_notifier.config.notifications_enabled = False
         with patch.object(slack_notifier, "_send_notification") as mock_send:
             slack_notifier.handle_event(mock_event)
             mock_send.assert_not_called()
 
-    def test_unconfigured_notifier(self, slack_notifier, mock_event):
+    def test_unconfigured_notifier(self, tmp_path, mock_event):
         """Test that unconfigured notifier doesn't send notifications"""
-        # Create a new notifier with proper unconfigured state
-        with patch("src.slack.notifier.slack_config") as mock_config:
-            mock_config.enabled = True
-            mock_config.is_configured = False  # This is the key
+        # Create a new notifier with unconfigured state
+        unconfigured_config = RuntimeConfig(
+            is_test_environment=False,
+            notifications_enabled=True,
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token=None,  # No token means unconfigured
+            channel_id=None,  # No channel means unconfigured
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
 
-            # Create a new notifier instance with the mocked config
-            notifier = SlackNotifier()
-            notifier._is_test_environment = lambda: False
-
-            with patch.object(notifier, "_send_notification") as mock_send:
-                notifier.handle_event(mock_event)
-                mock_send.assert_not_called()
+        notifier = SlackNotifier(config=unconfigured_config)
+        with patch.object(notifier, "_send_notification") as mock_send:
+            notifier.handle_event(mock_event)
+            mock_send.assert_not_called()
 
     def test_test_environment(self, slack_notifier, mock_event):
         """Test that notifications are skipped in test environment"""
-        # Use context manager to ensure cleanup
-        with patch.dict(os.environ, {"TEST_ENVIRONMENT": "true"}, clear=False):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(mock_event)
-                mock_send.assert_not_called()
+        # Set test environment flag
+        slack_notifier.config.is_test_environment = True
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(mock_event)
+            mock_send.assert_not_called()
 
     def test_new_session_start(self, slack_notifier):
         """Test handling of new session"""
@@ -131,11 +124,8 @@ class TestSlackNotifier:
         with patch.object(
             slack_notifier, "_get_session_tracker", return_value=mock_tracker
         ):
-            with patch.object(
-                slack_notifier, "_is_test_environment", return_value=False
-            ):
-                with patch.object(slack_notifier, "_send_notification") as mock_send:
-                    slack_notifier.handle_event(event)
+            with patch.object(slack_notifier, "_send_notification") as mock_send:
+                slack_notifier.handle_event(event)
 
                 # Should send two messages: session start and command
                 calls = mock_send.call_args_list
@@ -165,16 +155,13 @@ class TestSlackNotifier:
         with patch.object(
             slack_notifier, "_get_session_tracker", return_value=mock_tracker
         ):
-            with patch.object(
-                slack_notifier, "_is_test_environment", return_value=False
-            ):
-                with patch.object(slack_notifier, "_send_notification") as mock_send:
-                    slack_notifier.handle_event(event)
+            with patch.object(slack_notifier, "_send_notification") as mock_send:
+                slack_notifier.handle_event(event)
 
-                    # Should send command notification
-                    mock_send.assert_called()
-                    # Get the actual call
-                    args = mock_send.call_args[0]
+                # Should send command notification
+                mock_send.assert_called()
+                # Get the actual call
+                args = mock_send.call_args[0]
                 assert "npm install" in args[0], (
                     f"Command not found in message: {args[0]}"
                 )
@@ -195,7 +182,6 @@ class TestSlackNotifier:
             # git status should be skipped
             mock_send.assert_not_called()
 
-    @pytest.mark.skip(reason="TEST_ENVIRONMENT環境変数の設計見直しが必要")
     def test_handle_task_tool(self, slack_notifier):
         """Test handling of Task tool"""
         event = HookEvent(
@@ -206,15 +192,13 @@ class TestSlackNotifier:
             tool_input={"description": "Fix authentication bug"},
         )
 
-        with patch("src.slack.notifier.slack_config", slack_notifier.mock_config):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(event)
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
 
-                mock_send.assert_called()
-                args = mock_send.call_args[0]
-                assert "Fix authentication bug" in args[0]
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "Fix authentication bug" in args[0]
 
-    @pytest.mark.skip(reason="TEST_ENVIRONMENT環境変数の設計見直しが必要")
     def test_handle_todo_write(self, slack_notifier):
         """Test handling of TodoWrite tool"""
         event = HookEvent(
@@ -230,16 +214,14 @@ class TestSlackNotifier:
             },
         )
 
-        with patch("src.slack.notifier.slack_config", slack_notifier.mock_config):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(event)
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
 
-                mock_send.assert_called()
-                args = mock_send.call_args[0]
-                assert "Task 1" in args[0]
-                assert "Task 2" in args[0]
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "Task 1" in args[0]
+            assert "Task 2" in args[0]
 
-    @pytest.mark.skip(reason="TEST_ENVIRONMENT環境変数の設計見直しが必要")
     def test_handle_file_operation(self, slack_notifier):
         """Test handling of file operations"""
         event = HookEvent(
@@ -250,15 +232,13 @@ class TestSlackNotifier:
             tool_input={"file_path": "/test/file.py"},
         )
 
-        with patch("src.slack.notifier.slack_config", slack_notifier.mock_config):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(event)
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
 
-                mock_send.assert_called()
-                args = mock_send.call_args[0]
-                assert "file.py" in args[0]
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "file.py" in args[0]
 
-    @pytest.mark.skip(reason="TEST_ENVIRONMENT環境変数の設計見直しが必要")
     def test_handle_post_tool_error(self, slack_notifier):
         """Test handling of tool errors"""
         event = HookEvent(
@@ -270,19 +250,15 @@ class TestSlackNotifier:
             result={"error": "Command failed with exit code 1"},
         )
 
-        with patch("src.slack.notifier.slack_config", slack_notifier.mock_config):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(event)
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
 
-                mock_send.assert_called()
-                args = mock_send.call_args[0]
-                assert "❌" in args[0]
-                assert "Command failed" in args[0]
-                assert (
-                    args[1] == NotificationLevel.CHANNEL
-                )  # Error should be high priority
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "❌" in args[0]
+            assert "Command failed" in args[0]
+            assert args[1] == NotificationLevel.CHANNEL  # Error should be high priority
 
-    @pytest.mark.skip(reason="TEST_ENVIRONMENT環境変数の設計見直しが必要")
     def test_handle_task_completion(self, slack_notifier):
         """Test handling of task completion"""
         event = HookEvent(
@@ -294,16 +270,14 @@ class TestSlackNotifier:
             result={"success": True},
         )
 
-        with patch("src.slack.notifier.slack_config", slack_notifier.mock_config):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(event)
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
 
-                mock_send.assert_called()
-                args = mock_send.call_args[0]
-                assert "✅" in args[0]
-                assert "タスク完了" in args[0]
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "✅" in args[0]
+            assert "タスク完了" in args[0]
 
-    @pytest.mark.skip(reason="TEST_ENVIRONMENT環境変数の設計見直しが必要")
     def test_handle_notification_permission(self, slack_notifier):
         """Test handling of permission notifications"""
         event = HookEvent(
@@ -313,16 +287,14 @@ class TestSlackNotifier:
             notification="Claude needs your permission to use Bash",
         )
 
-        with patch("src.slack.notifier.slack_config", slack_notifier.mock_config):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(event)
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
 
-                mock_send.assert_called()
-                args = mock_send.call_args[0]
-                assert "🔐" in args[0]
-                assert "Bash" in args[0]
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "🔐" in args[0]
+            assert "Bash" in args[0]
 
-    @pytest.mark.skip(reason="TEST_ENVIRONMENT環境変数の設計見直しが必要")
     def test_handle_stop_event(self, slack_notifier):
         """Test handling of stop event"""
         event = HookEvent(
@@ -331,15 +303,13 @@ class TestSlackNotifier:
             cwd="/test",
         )
 
-        with patch("src.slack.notifier.slack_config", slack_notifier.mock_config):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(event)
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
 
-                mock_send.assert_called()
-                args = mock_send.call_args[0]
-                assert "🛑" in args[0]
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "🛑" in args[0]
 
-    @pytest.mark.skip(reason="TEST_ENVIRONMENT環境変数の設計見直しが必要")
     def test_handle_user_prompt(self, slack_notifier):
         """Test handling of user prompt"""
         event = HookEvent(
@@ -349,15 +319,14 @@ class TestSlackNotifier:
             prompt="Please fix the authentication bug",
         )
 
-        with patch("src.slack.notifier.slack_config", slack_notifier.mock_config):
-            with patch.object(slack_notifier, "_send_notification") as mock_send:
-                slack_notifier.handle_event(event)
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
 
-                mock_send.assert_called()
-                args = mock_send.call_args[0]
-                assert "fix the authentication" in args[0]
-                kwargs = mock_send.call_args[1]
-                assert kwargs.get("broadcast") is True
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "fix the authentication" in args[0]
+            kwargs = mock_send.call_args[1]
+            assert kwargs.get("broadcast") is True
 
     @patch("urllib.request.urlopen")
     def test_send_notification_success(self, mock_urlopen, slack_notifier):
@@ -409,7 +378,7 @@ class TestSlackNotifier:
 
     def test_thread_state_persistence(self, slack_notifier, tmp_path):
         """Test thread state saving and loading"""
-        slack_notifier.mock_config.thread_dir = tmp_path
+        slack_notifier.config.thread_dir = tmp_path
 
         # Save thread state
         slack_notifier._save_thread_state("test-session", "1234567890.123456")
@@ -421,7 +390,7 @@ class TestSlackNotifier:
     @patch("urllib.request.urlopen")
     def test_thread_continuation(self, mock_urlopen, slack_notifier, tmp_path):
         """Test that messages continue in the same thread"""
-        slack_notifier.mock_config.thread_dir = tmp_path
+        slack_notifier.config.thread_dir = tmp_path
 
         # Mock successful response
         mock_response = MagicMock()
@@ -449,3 +418,87 @@ class TestSlackNotifier:
         request = second_call[0][0]
         data = json.loads(request.data.decode("utf-8"))
         assert data.get("thread_ts") == "1234567890.123456"
+
+    def test_should_handle_event_notifications_disabled(self, tmp_path):
+        """Test should_handle_event with notifications disabled"""
+        config = RuntimeConfig(
+            is_test_environment=False,
+            notifications_enabled=False,  # Disabled
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token="xoxb-test-token",
+            channel_id="C1234567890",
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
+        notifier = SlackNotifier(config=config)
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+        )
+        assert notifier.should_handle_event(event) is False
+
+    def test_should_handle_event_not_configured(self, tmp_path):
+        """Test should_handle_event with missing configuration"""
+        config = RuntimeConfig(
+            is_test_environment=False,
+            notifications_enabled=True,
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token=None,  # Not configured
+            channel_id=None,  # Not configured
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
+        notifier = SlackNotifier(config=config)
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+        )
+        assert notifier.should_handle_event(event) is False
+
+    def test_should_handle_event_test_environment(self, tmp_path):
+        """Test should_handle_event in test environment"""
+        config = RuntimeConfig(
+            is_test_environment=True,  # Test environment
+            notifications_enabled=True,
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token="xoxb-test-token",
+            channel_id="C1234567890",
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
+        notifier = SlackNotifier(config=config)
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+        )
+        assert notifier.should_handle_event(event) is False
+
+    def test_should_handle_event_all_conditions_met(self, tmp_path):
+        """Test should_handle_event when all conditions are met"""
+        config = RuntimeConfig(
+            is_test_environment=False,
+            notifications_enabled=True,
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token="xoxb-test-token",
+            channel_id="C1234567890",
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
+        notifier = SlackNotifier(config=config)
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+        )
+        assert notifier.should_handle_event(event) is True

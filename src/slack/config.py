@@ -1,6 +1,7 @@
 """Slack notification configuration"""
 
 import os
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
@@ -10,6 +11,48 @@ class NotificationLevel(Enum):
 
     CHANNEL = "channel"
     THREAD = "thread"
+
+
+@dataclass
+class RuntimeConfig:
+    """実行時設定（環境変数から独立）"""
+
+    is_test_environment: bool
+    notifications_enabled: bool
+    show_session_start: bool
+    notify_on_tool_use: bool
+    notify_on_stop: bool
+    bot_token: str | None
+    channel_id: str | None
+    command_max_length: int
+    thread_dir: Path
+
+    @classmethod
+    def from_environment(cls) -> "RuntimeConfig":
+        """環境変数から設定を読み込む（環境依存部分を集約）"""
+
+        def _get_bool_env(key: str, default: bool) -> bool:
+            value = os.environ.get(key, str(default)).lower()
+            return value in ("1", "true", "yes")
+
+        thread_dir = Path.home() / ".cchh" / "slack_threads"
+
+        return cls(
+            is_test_environment=os.getenv("TEST_ENVIRONMENT", "").lower() == "true",
+            notifications_enabled=_get_bool_env("SLACK_NOTIFICATIONS_ENABLED", True),
+            show_session_start=_get_bool_env("SLACK_SHOW_SESSION_START", True),
+            notify_on_tool_use=_get_bool_env("SLACK_NOTIFY_ON_TOOL_USE", True),
+            notify_on_stop=_get_bool_env("SLACK_NOTIFY_ON_STOP", True),
+            bot_token=os.environ.get("SLACK_BOT_TOKEN"),
+            channel_id=os.environ.get("SLACK_CHANNEL_ID"),
+            command_max_length=int(os.environ.get("SLACK_COMMAND_MAX_LENGTH", "200")),
+            thread_dir=thread_dir,
+        )
+
+    @property
+    def is_configured(self) -> bool:
+        """Check if Slack is properly configured"""
+        return self.bot_token is not None and self.channel_id is not None
 
 
 class SlackConfig:
@@ -39,7 +82,7 @@ class SlackConfig:
     @property
     def is_configured(self) -> bool:
         """Check if Slack is properly configured"""
-        return bool(self.bot_token and self.channel_id)
+        return self.bot_token is not None and self.channel_id is not None
 
 
 # Global instance
