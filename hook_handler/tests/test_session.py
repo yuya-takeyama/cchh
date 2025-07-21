@@ -23,7 +23,7 @@ def session_manager():
         mock_settings.thread_dir.mkdir(parents=True, exist_ok=True)
 
         session_manager = SessionManager(test_session_id)
-        session_manager.temp_dir = temp_dir  # Store for cleanup
+        session_manager.temp_dir = temp_dir  # type: ignore  # Store for cleanup
         yield session_manager
 
     # Clean up temp directory

@@ -19,7 +19,7 @@ def handler():
         mock_session_manager_class.return_value = mock_session_manager
 
         handler = HookHandler(session_id, cwd)
-        handler.mock_session_manager = mock_session_manager
+        handler.mock_session_manager = mock_session_manager  # type: ignore
         yield handler
 
 
