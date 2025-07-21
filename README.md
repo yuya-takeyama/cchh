@@ -1,4 +1,6 @@
-# Claude Code Hook Handler
+# CCHH - Claude Code Hook Handlers
+
+[![test](https://github.com/yuya-takeyama/cchh/actions/workflows/test.yaml/badge.svg)](https://github.com/yuya-takeyama/cchh/actions/workflows/test.yaml)
 
 Claude Codeのhookイベントをハンドリングして、SlackとZundaspeakで通知を行うツールです。
 
@@ -9,30 +11,84 @@ Claude Codeのhookイベントをハンドリングして、SlackとZundaspeak�
 - **セッション管理**: セッションごとにSlackスレッドを管理
 - **ログ記録**: すべてのhookイベントをログファイルに記録
 
+## インストールと使用方法
+
+### 1. リポジトリのクローン
+
+```bash
+git clone https://github.com/yuya-takeyama/cchh.git
+cd cchh
+```
+
+### 2. 依存関係のインストール
+
+```bash
+# uvがインストールされていない場合
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 依存関係をインストール
+uv sync
+```
+
+### 3. Claude Codeでの設定
+
+Claude Codeの設定ファイル（~/.claude/settings.json または settings.local.json）に以下を追加：
+
+```json
+{
+  "hooks": {
+    "preToolUse": "python /path/to/cchh/hook_handler.py",
+    "postToolUse": "python /path/to/cchh/hook_handler.py",
+    "notification": "python /path/to/cchh/hook_handler.py",
+    "stop": "python /path/to/cchh/hook_handler.py",
+    "userPromptSubmit": "python /path/to/cchh/hook_handler.py"
+  }
+}
+```
+
+### 4. 環境変数の設定
+
+Slack通知を使用する場合は、以下の環境変数を設定：
+
+```bash
+export SLACK_BOT_TOKEN="xoxb-your-bot-token"
+export SLACK_CHANNEL_ID="C0123456789"
+```
+
 ## ディレクトリ構造
 
 ```
-scripts/
+.
 ├── hook_handler.py              # エントリーポイント（後方互換性用）
 ├── test_hook_handler.py         # テストランナー
-└── hook_handler/               # メインパッケージ
-    ├── __init__.py
-    ├── main.py                  # メインエントリーポイント
-    ├── config.py                # 設定管理
-    ├── messages.py              # メッセージテンプレート
-    ├── command_converter.py     # コマンド変換ロジック
-    ├── utils.py                 # ユーティリティ関数
-    ├── session.py               # セッション管理
-    ├── notifiers.py             # 通知ハンドラー（Slack/Zundaspeak）
-    ├── handlers.py              # Hookイベントハンドラー
-    ├── logger.py                # ロギング
-    └── tests/                   # テストスイート
-        ├── __init__.py
-        ├── test_command_converter.py
-        ├── test_utils.py
-        ├── test_session.py
-        ├── test_notifiers.py
-        └── test_handlers.py
+├── hook_handler/                # メインパッケージ
+│   ├── __init__.py
+│   ├── main.py                  # メインエントリーポイント
+│   ├── config.py                # 設定管理
+│   ├── messages.py              # メッセージテンプレート
+│   ├── command_converter.py     # コマンド変換ロジック
+│   ├── utils.py                 # ユーティリティ関数
+│   ├── session.py               # セッション管理
+│   ├── notifiers.py             # 通知ハンドラー（Slack/Zundaspeak）
+│   ├── handlers.py              # Hookイベントハンドラー
+│   ├── logger.py                # ロギング
+│   ├── py.typed                 # 型ヒントサポート
+│   └── tests/                   # テストスイート
+│       ├── __init__.py
+│       ├── conftest.py          # pytest設定
+│       ├── test_command_converter.py
+│       ├── test_utils.py
+│       ├── test_session.py
+│       ├── test_notifiers.py
+│       ├── test_handlers.py
+│       └── test_logger.py
+├── pyproject.toml               # プロジェクト設定
+├── aqua/                        # aqua設定（ツール管理）
+│   ├── aqua.yaml
+│   └── aqua-checksums.json
+└── .github/
+    └── workflows/
+        └── test.yaml            # CI/CD設定
 ```
 
 ## 設定
@@ -85,13 +141,13 @@ uv run task clean
 uv run task test
 
 # 特定のテストモジュールを実行
-uv run pytest scripts/hook_handler/tests/test_utils.py -v
+uv run pytest hook_handler/tests/test_utils.py -v
 
 # 特定のテストクラスを実行
-uv run pytest scripts/hook_handler/tests/test_handlers.py::TestHookHandler -v
+uv run pytest hook_handler/tests/test_handlers.py::TestHookHandler -v
 
 # カバレッジレポート付きでテスト実行
-uv run pytest --cov=scripts/hook_handler --cov-report=term-missing
+uv run pytest --cov=hook_handler --cov-report=term-missing
 ```
 
 ## 主な改善点
@@ -159,3 +215,20 @@ self.parts_limit = {
 | `npm install`           | エヌピーエム インストール         |
 | `docker run -it ubuntu` | docker ラン                       |
 | `uv run task format`    | ユーブイ ラン タスク フォーマット |
+
+## その他のツール
+
+### テストヘルパースクリプト
+
+- **test_hook_handler.py**: hook_handler.pyのテスト実行用スクリプト
+- **test_cwd_display.py**: 現在のディレクトリ表示のテスト
+- **test_user_prompt_submit.py**: ユーザープロンプト送信のテスト
+- **ruff_format_hook.py**: Ruffフォーマッターのhook実装例
+
+### ログツール
+
+- **event_logger.sh**: イベントをJSONL形式でログに記録するシェルスクリプト
+
+## License
+
+MIT License - see the [LICENSE](LICENSE) file for details.
