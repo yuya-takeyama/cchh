@@ -22,30 +22,32 @@ cchh/
 ├── DEVELOPER.md            # This file - developer documentation
 ├── LICENSE                 # MIT License
 ├── uv.lock                # Dependency lock file
-├── hook_handler.py         # Entry point (backward compatibility)
-├── hook_handler/           # Main package
+├── all_hooks.py           # Main entry point
+├── ruff_hook.py           # Ruff formatter hook
+├── src/                   # Main package
 │   ├── __init__.py
-│   ├── main.py             # Main entry point
-│   ├── handlers.py         # Hook event handlers
-│   ├── session.py          # Session management
-│   ├── notifiers.py        # Slack/voice notifications
-│   ├── logger.py           # Logging system
-│   ├── utils.py            # Utility functions
-│   ├── messages.py         # Message definitions
-│   ├── config.py           # Configuration management
-│   ├── command_converter.py # Command to speech conversion
-│   ├── py.typed            # Type hint support
-│   └── tests/              # Unit tests
-│       ├── __init__.py
-│       ├── conftest.py
-│       ├── test_command_converter.py
-│       ├── test_handlers.py
-│       ├── test_logger.py
-│       ├── test_notifiers.py
-│       ├── test_session.py
-│       └── test_utils.py
+│   ├── core/               # Core functionality
+│   │   ├── dispatcher.py   # Event dispatcher
+│   │   └── types.py        # Type definitions
+│   ├── slack/              # Slack notification
+│   │   ├── notifier.py     # Slack notifier
+│   │   └── session_tracker.py # Session management
+│   ├── zunda/              # Zunda voice
+│   │   ├── speaker.py      # Voice speaker
+│   │   └── command_formatter.py # Command formatting
+│   ├── logger/             # Event logging
+│   │   └── event_logger.py # JSONL logger
+│   └── utils/              # Utilities
+│       ├── command_parser.py # Command parsing
+│       ├── io_helpers.py   # I/O helpers
+│       └── logger.py       # Debug logger
+├── tests/                  # Unit tests
+│   ├── core/
+│   ├── slack/
+│   ├── zunda/
+│   ├── logger/
+│   └── integration/
 ├── test_*.py               # Helper test scripts
-├── ruff_format_hook.py     # Ruff auto-format hook
 ├── event_logger.sh         # Event logging script
 ├── aqua/                   # Tool management with aqua
 └── .github/
@@ -87,7 +89,7 @@ All commands use `uv run task <command>` format:
 | `uv run task test`      | Run tests with coverage       | `pytest`                                   |
 | `uv run task lint`      | Lint code with ruff           | `ruff check .`                             |
 | `uv run task format`    | Format code with ruff         | `ruff format .`                            |
-| `uv run task typecheck` | Type checking with mypy       | `mypy hook_handler`                        |
+| `uv run task typecheck` | Type checking with mypy       | `mypy src`                                 |
 | `uv run task all`       | Run all checks                | `task lint && task test && task typecheck` |
 | `uv run task clean`     | Clean build artifacts         | Complex cleanup script\*                   |
 
@@ -106,7 +108,7 @@ uv sync                    # Install dependencies
 uv run pytest             # Run tests directly
 uv run ruff check .       # Lint directly
 uv run ruff format .      # Format directly
-uv run mypy hook_handler  # Type check directly
+uv run mypy src          # Type check directly
 ```
 
 ## Code Quality Configuration
@@ -120,7 +122,7 @@ uv run mypy hook_handler  # Type check directly
 
 ### Test Configuration
 
-- **Test path**: `hook_handler/tests`
+- **Test path**: `tests`
 - **Coverage**: term-missing reports
 - **Branch coverage**: Enabled
 - **Test files**: `test_*.py` pattern
@@ -135,11 +137,11 @@ Example settings.json configuration:
 ```json
 {
   "hooks": {
-    "preToolUse": "python /path/to/cchh/hook_handler.py",
-    "postToolUse": "python /path/to/cchh/hook_handler.py",
-    "notification": "python /path/to/cchh/hook_handler.py",
-    "stop": "python /path/to/cchh/hook_handler.py",
-    "userPromptSubmit": "python /path/to/cchh/hook_handler.py"
+    "preToolUse": "python /path/to/cchh/all_hooks.py",
+    "postToolUse": "python /path/to/cchh/all_hooks.py",
+    "notification": "python /path/to/cchh/all_hooks.py",
+    "stop": "python /path/to/cchh/all_hooks.py",
+    "userPromptSubmit": "python /path/to/cchh/all_hooks.py"
   }
 }
 ```
@@ -157,12 +159,12 @@ Example settings.json configuration:
 
 The project follows a modular architecture:
 
-1. **handlers.py**: Central event routing
-2. **notifiers.py**: External notification interfaces
-3. **session.py**: State management across CLI sessions
-4. **logger.py**: Structured logging with JSONL format
-5. **utils.py**: Shared utilities and helpers
-6. **config.py**: Centralized configuration
+1. **core/dispatcher.py**: Central event routing
+2. **slack/notifier.py**: Slack notification interface
+3. **zunda/speaker.py**: Voice notification interface
+4. **logger/event_logger.py**: Structured logging with JSONL format
+5. **utils/**: Shared utilities and helpers
+6. ***/config.py**: Module-specific configuration
 
 ### Testing Strategy
 
@@ -207,7 +209,7 @@ The project follows a modular architecture:
 ### Log Files
 
 - **~/.claude/hooks.log**: All hook events in JSONL format
-- **~/.claude/hook_handler_errors.log**: Error logs
+- **~/.claude/cchh_errors.log**: Error logs
 - **~/.claude/slack_thread_ts/**: Session state files
 
 ### Common Issues

@@ -145,7 +145,6 @@ export SLACK_CHANNEL_ID="C0123456789"
 .
 ├── all_hooks.py                 # メインエントリーポイント（全イベント処理）
 ├── ruff_hook.py                 # Ruffフォーマット専用フック
-├── hook_handler.py              # エントリーポイント（後方互換性用）
 ├── src/                         # 新しいモジュール構造
 │   ├── __init__.py
 │   ├── core/                    # コア機能
@@ -176,7 +175,6 @@ export SLACK_CHANNEL_ID="C0123456789"
 │       ├── config.py            # 共通設定
 │       ├── logger.py            # デバッグロガー
 │       └── io_helpers.py        # I/Oヘルパー
-├── hook_handler/                # 既存パッケージ（後方互換性）
 ├── tests/                       # テストディレクトリ
 ├── pyproject.toml               # プロジェクト設定
 ├── aqua/                        # aqua設定（ツール管理）
@@ -254,13 +252,13 @@ uv run task clean
 uv run task test
 
 # 特定のテストモジュールを実行
-uv run pytest hook_handler/tests/test_utils.py -v
+uv run pytest tests/slack/test_notifier.py -v
 
 # 特定のテストクラスを実行
-uv run pytest hook_handler/tests/test_handlers.py::TestHookHandler -v
+uv run pytest tests/core/test_dispatcher.py::TestEventDispatcher -v
 
 # カバレッジレポート付きでテスト実行
-uv run pytest --cov=hook_handler --cov-report=term-missing
+uv run pytest --cov=src --cov-report=term-missing
 ```
 
 ## 主な改善点
@@ -277,7 +275,7 @@ Zundaspeak音声通知で読み上げるコマンドの変換ルールをカス�
 
 ### 変更可能なルール
 
-#### 1. 単語の置換辞書 (`hook_handler/command_converter.py`)
+#### 1. 単語の置換辞書 (`src/utils/command_parser.py`)
 
 プログラム名とサブコマンドの読み替えを定義：
 
@@ -298,7 +296,7 @@ self.words = {
 }
 ```
 
-#### 2. 読み上げ部品数の制限 (`hook_handler/command_converter.py`)
+#### 2. 読み上げ部品数の制限 (`src/zunda/command_formatter.py`)
 
 コマンドの何部品目まで読み上げるかを指定：
 
@@ -333,7 +331,6 @@ self.parts_limit = {
 
 ### テストヘルパースクリプト
 
-- **test_hook_handler.py**: hook_handler.pyのテスト実行用スクリプト
 - **test_cwd_display.py**: 現在のディレクトリ表示のテスト
 - **test_user_prompt_submit.py**: ユーザープロンプト送信のテスト
 - **ruff_hook.py**: Ruffフォーマッターのhook実装例

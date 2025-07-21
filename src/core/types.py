@@ -68,23 +68,23 @@ class HookEvent:
         if isinstance(event_name, HookEventName):
             event_name = event_name.value
 
-        result = {
+        data: dict[str, Any] = {
             "hook_event_name": event_name,
             "session_id": self.session_id,
             "cwd": self.cwd,
         }
 
         if self.tool_name is not None:
-            result["tool_name"] = self.tool_name
+            data["tool_name"] = self.tool_name
         if self.tool_input is not None:
-            result["tool_input"] = self.tool_input
+            data["tool_input"] = self.tool_input
         if self.result is not None:
-            result["result"] = self.result
+            data["result"] = self.result
         if self.prompt is not None:
-            result["prompt"] = self.prompt
+            data["prompt"] = self.prompt
         if self.notification is not None:
-            result["notification"] = self.notification
+            data["notification"] = self.notification
         if self.output is not None:
-            result["output"] = self.output
+            data["output"] = self.output
 
-        return result
+        return data

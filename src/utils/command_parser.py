@@ -1,9 +1,10 @@
 """Command parsing utilities"""
 
 import shlex
+from typing import Any
 
 
-def parse_bash_command(command: str) -> dict[str, any]:
+def parse_bash_command(command: str) -> dict[str, Any]:
     """Parse bash command into structured format
 
     Args:
@@ -16,7 +17,7 @@ def parse_bash_command(command: str) -> dict[str, any]:
         - options: Dictionary of options (flags)
         - raw: Original command string
     """
-    result = {
+    result: dict[str, Any] = {
         "command": "",
         "args": [],
         "options": {},
@@ -56,7 +57,7 @@ def parse_bash_command(command: str) -> dict[str, any]:
                 result["args"].append(part)
                 i += 1
 
-    except (ValueError, shlex.error):
+    except (ValueError, Exception):
         # If shlex fails, do basic splitting
         parts = command.split()
         if parts:

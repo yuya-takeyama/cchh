@@ -46,7 +46,7 @@ class SlackSessionTracker:
 
     def get_active_sessions(self) -> set[str]:
         """Get all active session IDs"""
-        active_sessions = set()
+        active_sessions: set[str] = set()
 
         if not self.session_dir.exists():
             return active_sessions

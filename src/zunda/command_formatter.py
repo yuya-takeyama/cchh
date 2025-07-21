@@ -1,5 +1,6 @@
 """Command formatting for Zunda voice synthesis"""
 
+
 from ..utils.command_parser import parse_bash_command
 
 
@@ -67,13 +68,14 @@ class CommandFormatter:
         # 基本的なコマンド解析
         parsed = parse_bash_command(command)
         cmd_name = parsed["command"]
+        args: list[str] = parsed["args"] if isinstance(parsed["args"], list) else []
 
         # コマンド名を日本語に変換
         readable_name = self.command_map.get(cmd_name, cmd_name)
 
         # 特定のパターンに対する特別な処理
         if cmd_name == "git":
-            if parsed["args"] and parsed["args"][0] in [
+            if args and args[0] in [
                 "add",
                 "commit",
                 "push",
@@ -93,11 +95,11 @@ class CommandFormatter:
                     "branch": "ブランチ",
                     "merge": "マージ",
                 }
-                action = git_action_map.get(parsed["args"][0], parsed["args"][0])
+                action = git_action_map.get(args[0], args[0])
                 return f"ギット{action}を実行"
 
         elif cmd_name in ["npm", "yarn", "pnpm"]:
-            if parsed["args"] and parsed["args"][0] in [
+            if args and args[0] in [
                 "install",
                 "run",
                 "start",
@@ -111,7 +113,7 @@ class CommandFormatter:
                     "test": "テスト",
                     "build": "ビルド",
                 }
-                action = action_map.get(parsed["args"][0], parsed["args"][0])
+                action = action_map.get(args[0], args[0])
                 return f"{readable_name}で{action}を実行"
 
         elif cmd_name == "cd":

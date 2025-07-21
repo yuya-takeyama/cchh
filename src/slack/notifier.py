@@ -97,9 +97,9 @@ class SlackNotifier(BaseHandler):
                 ):
                     # Format command with truncation
                     truncated_cmd = self.command_formatter.format(cmd)
-                    message, level = self.event_formatter.format_command(truncated_cmd)
-                    if message:
-                        notifications.append((message, level))
+                    result = self.event_formatter.format_command(truncated_cmd)
+                    if result[0] is not None and result[1] is not None:
+                        notifications.append((result[0], result[1]))
 
         elif event.tool_name == "TodoWrite":
             todos = event.tool_input.get("todos", [])
