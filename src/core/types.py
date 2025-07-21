@@ -1,22 +1,25 @@
 """Core type definitions for Claude Code Hooks"""
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from enum import Enum
+from typing import Any
 
-HookEventName = Literal[
-    "PreToolUse",
-    "PostToolUse",
-    "Notification",
-    "Stop",
-    "UserPromptSubmit",
-]
+
+class HookEventName(Enum):
+    """Enumeration of available hook event names"""
+
+    PRE_TOOL_USE = "PreToolUse"
+    POST_TOOL_USE = "PostToolUse"
+    NOTIFICATION = "Notification"
+    STOP = "Stop"
+    USER_PROMPT_SUBMIT = "UserPromptSubmit"
 
 
 @dataclass
 class HookEvent:
     """Represents a Claude Code hook event"""
 
-    hook_event_name: HookEventName
+    hook_event_name: str | HookEventName
     session_id: str
     cwd: str
     tool_name: str | None = None
@@ -30,8 +33,20 @@ class HookEvent:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "HookEvent":
         """Create HookEvent from dictionary"""
+        # Try to convert event name to enum if possible
+        event_name = data.get("hook_event_name", "Unknown")
+        try:
+            # Try to find matching enum value
+            for enum_member in HookEventName:
+                if enum_member.value == event_name:
+                    event_name = enum_member
+                    break
+        except Exception:
+            # Keep as string if conversion fails
+            pass
+
         return cls(
-            hook_event_name=data.get("hook_event_name", "Unknown"),
+            hook_event_name=event_name,
             session_id=data.get("session_id", ""),
             cwd=data.get("cwd", ""),
             tool_name=data.get("tool_name"),
@@ -48,8 +63,13 @@ class HookEvent:
         if self.raw_data:
             return self.raw_data
 
+        # Convert enum to string if necessary
+        event_name = self.hook_event_name
+        if isinstance(event_name, HookEventName):
+            event_name = event_name.value
+
         result = {
-            "hook_event_name": self.hook_event_name,
+            "hook_event_name": event_name,
             "session_id": self.session_id,
             "cwd": self.cwd,
         }

@@ -7,7 +7,7 @@ import urllib.parse
 import urllib.request
 
 from ..core.base import BaseHandler
-from ..core.types import HookEvent
+from ..core.types import HookEvent, HookEventName
 from ..utils.logger import get_error_logger
 from .command_formatter import CommandFormatter
 from .config import NotificationLevel, slack_config
@@ -43,15 +43,24 @@ class SlackNotifier(BaseHandler):
             self._handle_session_start(event, session_tracker)
 
         # Handle specific event types
-        if event.hook_event_name == "PreToolUse" and slack_config.notify_on_tool_use:
+        if (
+            event.hook_event_name in (HookEventName.PRE_TOOL_USE, "PreToolUse")
+            and slack_config.notify_on_tool_use
+        ):
             self._handle_pre_tool_use(event, session_tracker)
-        elif event.hook_event_name == "PostToolUse":
+        elif event.hook_event_name in (HookEventName.POST_TOOL_USE, "PostToolUse"):
             self._handle_post_tool_use(event, session_tracker)
-        elif event.hook_event_name == "Notification":
+        elif event.hook_event_name in (HookEventName.NOTIFICATION, "Notification"):
             self._handle_notification(event, session_tracker)
-        elif event.hook_event_name == "Stop" and slack_config.notify_on_stop:
+        elif (
+            event.hook_event_name in (HookEventName.STOP, "Stop")
+            and slack_config.notify_on_stop
+        ):
             self._handle_stop(event, session_tracker)
-        elif event.hook_event_name == "UserPromptSubmit":
+        elif event.hook_event_name in (
+            HookEventName.USER_PROMPT_SUBMIT,
+            "UserPromptSubmit",
+        ):
             self._handle_user_prompt_submit(event, session_tracker)
 
     def _handle_session_start(

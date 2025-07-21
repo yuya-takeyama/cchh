@@ -4,7 +4,7 @@ import os
 import subprocess
 
 from ..core.base import BaseHandler
-from ..core.types import HookEvent
+from ..core.types import HookEvent, HookEventName
 from ..utils.logger import get_error_logger
 from .command_formatter import CommandFormatter
 from .config import zunda_config
@@ -60,15 +60,16 @@ class ZundaSpeaker(BaseHandler):
 
         # UserPromptSubmitイベントのみ処理
         if (
-            event.hook_event_name == "UserPromptSubmit"
+            event.hook_event_name
+            in (HookEventName.USER_PROMPT_SUBMIT, "UserPromptSubmit")
             and zunda_config.speak_on_prompt_submit
         ):
             self._handle_user_prompt_submit(event)
-        elif event.hook_event_name == "PreToolUse":
+        elif event.hook_event_name in (HookEventName.PRE_TOOL_USE, "PreToolUse"):
             self._handle_pre_tool_use(event)
-        elif event.hook_event_name == "Notification":
+        elif event.hook_event_name in (HookEventName.NOTIFICATION, "Notification"):
             self._handle_notification(event)
-        elif event.hook_event_name == "Stop":
+        elif event.hook_event_name in (HookEventName.STOP, "Stop"):
             self._handle_stop(event)
 
     def _handle_user_prompt_submit(self, event: HookEvent) -> None:

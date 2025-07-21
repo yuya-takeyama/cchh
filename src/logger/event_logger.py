@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ..core.base import BaseHandler
-from ..core.types import HookEvent
+from ..core.types import HookEvent, HookEventName
 from ..utils.config import is_test_environment
 from ..utils.logger import get_debug_logger
 from .config import logger_config
@@ -36,9 +36,14 @@ class EventLogger(BaseHandler):
 
     def _log_event(self, event: HookEvent) -> None:
         """Log event to file"""
+        # Convert enum to string if necessary
+        event_name = event.hook_event_name
+        if isinstance(event_name, HookEventName):
+            event_name = event_name.value
+
         log_entry = {
             "timestamp": datetime.now().isoformat() + "Z",
-            "hook_type": event.hook_event_name,
+            "hook_type": event_name,
             "session_id": event.session_id,
             "cwd": event.cwd,
             "data": event.to_dict(),

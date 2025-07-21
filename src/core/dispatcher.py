@@ -10,9 +10,9 @@ class EventDispatcher:
     """Dispatches hook events to appropriate handlers"""
 
     def __init__(self):
-        self.slack = self._init_slack()
-        self.zunda = self._init_zunda()
-        self.logger = self._init_logger()
+        self.slack: HookHandler | None = self._init_slack()
+        self.zunda: HookHandler | None = self._init_zunda()
+        self.logger: HookHandler | None = self._init_logger()
 
     def _init_slack(self) -> HookHandler | None:
         """Initialize Slack notifier if enabled"""
