@@ -19,6 +19,9 @@ CCHH (Claude Code Hook Handlers) is a modular Python application that handles Cl
 
 ### Essential Commands
 ```bash
+# Install development tools (including uv)
+aqua install
+
 # Install dependencies
 uv sync
 
@@ -318,7 +321,7 @@ Add to Claude Code settings (`~/.claude/settings.json`):
 ### Common Issues
 1. **Import errors**: Ensure PYTHONPATH includes project root
 2. **Slack not working**: Check CCHH_SLACK_BOT_TOKEN and CCHH_SLACK_CHANNEL_ID
-3. **Tests failing**: Run `uv sync` to update dependencies
+3. **Tests failing**: Run `aqua install` then `uv sync` to update dependencies
 
 ### Debug Mode
 Set `CCHH_TEST_ENVIRONMENT=1` to disable external notifications during development.
