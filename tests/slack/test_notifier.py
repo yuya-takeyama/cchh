@@ -166,21 +166,6 @@ class TestSlackNotifier:
                     f"Command not found in message: {args[0]}"
                 )
 
-    def test_skip_silent_commands(self, slack_notifier):
-        """Test that silent commands are skipped"""
-        event = HookEvent(
-            hook_event_name="PreToolUse",
-            session_id="test-session",
-            cwd="/test",
-            tool_name="Bash",
-            tool_input={"command": "git status"},
-        )
-
-        with patch.object(slack_notifier, "_send_notification") as mock_send:
-            slack_notifier.handle_event(event)
-
-            # git status should be skipped
-            mock_send.assert_not_called()
 
     def test_handle_task_tool(self, slack_notifier):
         """Test handling of Task tool"""
@@ -238,6 +223,40 @@ class TestSlackNotifier:
             mock_send.assert_called()
             args = mock_send.call_args[0]
             assert "file.py" in args[0]
+
+    def test_handle_git_diff_command(self, slack_notifier):
+        """Test that git diff commands are now notified in Slack"""
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+            tool_name="Bash",
+            tool_input={"command": "git diff origin/main...HEAD"},
+        )
+
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
+
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "git diff origin/main...HEAD" in args[0]
+
+    def test_handle_git_status_command(self, slack_notifier):
+        """Test that git status commands are now notified in Slack"""
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+            tool_name="Bash",
+            tool_input={"command": "git status"},
+        )
+
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
+
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "git status" in args[0]
 
     def test_handle_post_tool_error(self, slack_notifier):
         """Test handling of tool errors"""

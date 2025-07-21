@@ -95,6 +95,39 @@ class TestZundaSpeaker:
             zunda_speaker.handle_event(event)
             mock_run.assert_not_called()
 
+    def test_skip_silent_commands(self, zunda_speaker):
+        """Test that silent commands like git diff are skipped in Zunda"""
+        silent_commands = ["git status", "git log", "git diff", "ls", "pwd", "cat"]
+
+        for cmd in silent_commands:
+            event = HookEvent(
+                hook_event_name="PreToolUse",
+                session_id="test-session",
+                cwd="/test",
+                tool_name="Bash",
+                tool_input={"command": cmd},
+            )
+
+            with patch("subprocess.run") as mock_run:
+                zunda_speaker.handle_event(event)
+                mock_run.assert_not_called()  # Silent command should not trigger speech
+
+    def test_non_silent_commands_are_spoken(self, zunda_speaker):
+        """Test that non-silent commands are still spoken"""
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+            tool_name="Bash",
+            tool_input={"command": "git commit -m 'test'"},
+        )
+
+        with patch("subprocess.run") as mock_run:
+            zunda_speaker.handle_event(event)
+            mock_run.assert_called_once()
+            args = mock_run.call_args[0][0]
+            assert "git commit" in args[3]
+
     def test_handle_notification_permission(self, zunda_speaker):
         """Test handling of permission notifications"""
         event = HookEvent(
