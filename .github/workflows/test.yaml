@@ -19,10 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+      - name: Install aqua
+        uses: aquaproj/aqua-installer@0e5c8d652675f919f850e94c9e0b2d52b4f86e08 # v3.3.0
         with:
-          version: "latest"
+          aqua_version: v2.40.0
+          enable_checksum: true
+          aqua_opts: ""
 
       - name: Set up Python 3.13
         run: uv python install 3.13
