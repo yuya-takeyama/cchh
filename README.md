@@ -36,15 +36,99 @@ Claude Codeの設定ファイル（~/.claude/settings.json または settings.lo
 
 ```json
 {
+  "permissions": {
+    "defaultMode": "acceptEdits"
+  },
   "hooks": {
-    "preToolUse": "python /path/to/cchh/hook_handler.py",
-    "postToolUse": "python /path/to/cchh/hook_handler.py",
-    "notification": "python /path/to/cchh/hook_handler.py",
-    "stop": "python /path/to/cchh/hook_handler.py",
-    "userPromptSubmit": "python /path/to/cchh/hook_handler.py"
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python ruff_hook.py"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matchers": ["manual", "auto"],
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
+
+注意：
+- イベント名はPascalCase（PreToolUse, PostToolUse など）を使用します
+- 各イベントは配列形式で、その中にhooksオブジェクトを含みます
+- `PostToolUse`では、エラー通知（all_hooks.py）とRuffフォーマット（ruff_hook.py）の両方を実行します
+- Ruffフォーマットが不要な場合は、2番目のhooksオブジェクトを削除してください
+- `/path/to/cchh` は実際のCCHHリポジトリへのパスに置き換えてください
 
 ### 4. 環境変数の設定
 
@@ -59,29 +143,39 @@ export SLACK_CHANNEL_ID="C0123456789"
 
 ```
 .
-├── hook_handler.py              # エントリーポイント（後方互換性用）
-├── test_hook_handler.py         # テストランナー
-├── hook_handler/                # メインパッケージ
+├── all_hooks.py                 # メインエントリーポイント（全イベント処理）
+├── ruff_hook.py                 # Ruffフォーマット専用フック
+├── src/                         # 新しいモジュール構造
 │   ├── __init__.py
-│   ├── main.py                  # メインエントリーポイント
-│   ├── config.py                # 設定管理
-│   ├── messages.py              # メッセージテンプレート
-│   ├── command_converter.py     # コマンド変換ロジック
-│   ├── utils.py                 # ユーティリティ関数
-│   ├── session.py               # セッション管理
-│   ├── notifiers.py             # 通知ハンドラー（Slack/Zundaspeak）
-│   ├── handlers.py              # Hookイベントハンドラー
-│   ├── logger.py                # ロギング
-│   ├── py.typed                 # 型ヒントサポート
-│   └── tests/                   # テストスイート
+│   ├── core/                    # コア機能
+│   │   ├── __init__.py
+│   │   ├── dispatcher.py        # イベントディスパッチャー
+│   │   └── types.py             # 型定義
+│   ├── slack/                   # Slack通知機能
+│   │   ├── __init__.py
+│   │   ├── notifier.py          # Slack通知メイン
+│   │   ├── session_tracker.py   # セッション管理
+│   │   ├── event_formatter.py   # イベントメッセージ整形
+│   │   ├── command_formatter.py # コマンド整形
+│   │   └── config.py            # Slack設定
+│   ├── zunda/                   # ずんだもん音声機能
+│   │   ├── __init__.py
+│   │   ├── speaker.py           # 音声読み上げメイン
+│   │   ├── prompt_formatter.py  # プロンプト整形
+│   │   ├── command_formatter.py # コマンド整形（音声用）
+│   │   └── config.py            # ずんだもん設定
+│   ├── logger/                  # イベントロギング
+│   │   ├── __init__.py
+│   │   ├── event_logger.py      # JSONLロガー
+│   │   └── config.py            # ロガー設定
+│   └── utils/                   # 共通ユーティリティ
 │       ├── __init__.py
-│       ├── conftest.py          # pytest設定
-│       ├── test_command_converter.py
-│       ├── test_utils.py
-│       ├── test_session.py
-│       ├── test_notifiers.py
-│       ├── test_handlers.py
-│       └── test_logger.py
+│       ├── command_parser.py    # コマンド解析
+│       ├── text_utils.py        # テキスト処理
+│       ├── config.py            # 共通設定
+│       ├── logger.py            # デバッグロガー
+│       └── io_helpers.py        # I/Oヘルパー
+├── tests/                       # テストディレクトリ
 ├── pyproject.toml               # プロジェクト設定
 ├── aqua/                        # aqua設定（ツール管理）
 │   ├── aqua.yaml
@@ -93,11 +187,28 @@ export SLACK_CHANNEL_ID="C0123456789"
 
 ## 設定
 
-環境変数で設定：
+### 環境変数
 
+#### Slack通知設定
 - `SLACK_BOT_TOKEN`: Slack Bot Token (xoxb-...)
 - `SLACK_CHANNEL_ID`: 通知先のSlackチャンネルID
-- `SLACK_ENABLED`: Slack通知の有効/無効 (デフォルト: 1)
+- `SLACK_NOTIFICATIONS_ENABLED`: Slack通知全体のON/OFF (デフォルト: true)
+- `SLACK_SHOW_SESSION_START`: セッション開始時のcwd表示 (デフォルト: true)
+- `SLACK_NOTIFY_ON_TOOL_USE`: ツール使用時の通知 (デフォルト: true)
+- `SLACK_NOTIFY_ON_STOP`: 処理終了時の通知 (デフォルト: true)
+- `SLACK_COMMAND_MAX_LENGTH`: コマンド表示の最大文字数 (デフォルト: 200)
+
+#### ずんだもん音声設定
+- `ZUNDA_SPEAKER_ENABLED`: ずんだもん音声全体のON/OFF (デフォルト: true)
+- `ZUNDA_SPEAK_ON_PROMPT_SUBMIT`: プロンプト送信時の読み上げ (デフォルト: true)
+- `ZUNDA_SPEAK_SPEED`: 読み上げ速度 (デフォルト: 1.2)
+
+#### イベントロギング設定
+- `EVENT_LOGGING_ENABLED`: イベントロギングのON/OFF (デフォルト: true)
+- `LOG_MAX_SIZE_MB`: ログファイルの最大サイズ（MB） (デフォルト: 100)
+- `LOG_ROTATION_COUNT`: ログローテーション数 (デフォルト: 5)
+
+#### その他
 - `TEST_ENVIRONMENT`: テスト環境フラグ（テスト時は通知を送信しない）
 
 ## 開発
@@ -141,13 +252,13 @@ uv run task clean
 uv run task test
 
 # 特定のテストモジュールを実行
-uv run pytest hook_handler/tests/test_utils.py -v
+uv run pytest tests/slack/test_notifier.py -v
 
 # 特定のテストクラスを実行
-uv run pytest hook_handler/tests/test_handlers.py::TestHookHandler -v
+uv run pytest tests/core/test_dispatcher.py::TestEventDispatcher -v
 
 # カバレッジレポート付きでテスト実行
-uv run pytest --cov=hook_handler --cov-report=term-missing
+uv run pytest --cov=src --cov-report=term-missing
 ```
 
 ## 主な改善点
@@ -164,7 +275,7 @@ Zundaspeak音声通知で読み上げるコマンドの変換ルールをカス�
 
 ### 変更可能なルール
 
-#### 1. 単語の置換辞書 (`hook_handler/command_converter.py`)
+#### 1. 単語の置換辞書 (`src/utils/command_parser.py`)
 
 プログラム名とサブコマンドの読み替えを定義：
 
@@ -185,7 +296,7 @@ self.words = {
 }
 ```
 
-#### 2. 読み上げ部品数の制限 (`hook_handler/command_converter.py`)
+#### 2. 読み上げ部品数の制限 (`src/zunda/command_formatter.py`)
 
 コマンドの何部品目まで読み上げるかを指定：
 
@@ -220,10 +331,9 @@ self.parts_limit = {
 
 ### テストヘルパースクリプト
 
-- **test_hook_handler.py**: hook_handler.pyのテスト実行用スクリプト
 - **test_cwd_display.py**: 現在のディレクトリ表示のテスト
 - **test_user_prompt_submit.py**: ユーザープロンプト送信のテスト
-- **ruff_format_hook.py**: Ruffフォーマッターのhook実装例
+- **ruff_hook.py**: Ruffフォーマッターのhook実装例
 
 ### ログツール
 

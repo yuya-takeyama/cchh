@@ -211,3 +211,9 @@ hook_handler_errors.log
 hooks.log
 voice_debug.log
 event_logs.json
+test_*.json
+zunda_debug.log
+
+# Claude Code
+**/.claude/settings.local.json
+CLAUDE.local.md
