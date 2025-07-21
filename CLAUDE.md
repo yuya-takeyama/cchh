@@ -1,26 +1,30 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides comprehensive guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Common Development Commands
+## Project Overview
 
-### Testing
+CCHH (Claude Code Hook Handlers) is a modular Python application that handles Claude Code hook events and dispatches them to various notification systems.
+
+### Tech Stack
+- **Language**: Python 3.13+
+- **Package Manager**: uv
+- **Task Runner**: taskipy
+- **Formatter & Linter**: ruff
+- **Testing**: pytest + pytest-cov
+- **Type Checking**: mypy
+- **CI/CD**: GitHub Actions
+
+## Development Commands
+
+### Essential Commands
 ```bash
+# Install dependencies
+uv sync
+
 # Run all tests with coverage
 uv run task test
 
-# Run specific test module
-uv run pytest tests/slack/test_notifier.py -v
-
-# Run specific test class
-uv run pytest tests/core/test_dispatcher.py::TestEventDispatcher -v
-
-# Run with coverage report
-uv run pytest --cov=src --cov-report=term-missing
-```
-
-### Code Quality
-```bash
 # Run linting
 uv run task lint
 
@@ -32,20 +36,91 @@ uv run task typecheck
 
 # Run all checks (lint + test + typecheck)
 uv run task all
-```
-
-### Development Setup
-```bash
-# Install dependencies
-uv sync
 
 # Clean build artifacts
 uv run task clean
 ```
 
-## High-Level Architecture
+### Specific Test Commands
+```bash
+# Run specific test module
+uv run pytest tests/slack/test_notifier.py -v
 
-CCHH (Claude Code Hook Handlers) is a modular Python application that handles Claude Code hook events and dispatches them to various notification systems.
+# Run specific test class
+uv run pytest tests/core/test_dispatcher.py::TestEventDispatcher -v
+
+# Run with coverage report
+uv run pytest --cov=src --cov-report=term-missing
+```
+
+### Direct Commands (Alternative)
+```bash
+uv run pytest             # Run tests directly
+uv run ruff check .       # Lint directly
+uv run ruff format .      # Format directly
+uv run mypy src          # Type check directly
+```
+
+## Project Structure
+
+```
+cchh/
+├── pyproject.toml           # Python project config (uv + taskipy + ruff)
+├── README.md               # User documentation
+├── CLAUDE.md               # This file - Claude Code guidance
+├── uv.lock                # Dependency lock file
+├── all_hooks.py           # Main entry point
+├── ruff_hook.py           # Ruff formatter hook
+├── src/                   # Main package
+│   ├── __init__.py
+│   ├── core/               # Core functionality
+│   │   ├── __init__.py
+│   │   ├── base.py         # HookHandler interface
+│   │   ├── dispatcher.py   # Event dispatcher
+│   │   └── types.py        # Type definitions
+│   ├── slack/              # Slack notification
+│   │   ├── __init__.py
+│   │   ├── notifier.py     # Main Slack notifier
+│   │   ├── session_tracker.py # Session management
+│   │   ├── event_formatter.py # Event message formatting
+│   │   ├── command_formatter.py # Command formatting
+│   │   └── config.py       # Slack configuration
+│   ├── zunda/              # Zunda voice notifications
+│   │   ├── __init__.py
+│   │   ├── speaker.py      # Voice speaker
+│   │   ├── prompt_formatter.py # Prompt formatting
+│   │   ├── command_formatter.py # Command formatting (voice)
+│   │   └── config.py       # Zunda configuration
+│   ├── logger/             # Event logging
+│   │   ├── __init__.py
+│   │   ├── event_logger.py # JSONL logger
+│   │   └── config.py       # Logger configuration
+│   └── utils/              # Utilities
+│       ├── __init__.py
+│       ├── command_parser.py # Command parsing
+│       ├── text_utils.py    # Text processing utilities
+│       ├── io_helpers.py    # I/O helpers
+│       ├── config.py        # Common configuration
+│       └── logger.py        # Debug logger
+├── tests/                  # Unit tests
+│   ├── __init__.py
+│   ├── core/
+│   ├── slack/
+│   ├── zunda/
+│   ├── logger/
+│   ├── utils/
+│   └── integration/
+├── test_*.py               # Helper test scripts
+├── event_logger.sh         # Event logging script (legacy)
+├── aqua/                   # Tool management with aqua
+│   ├── aqua.yaml
+│   └── aqua-checksums.json
+└── .github/
+    └── workflows/
+        └── test.yaml       # CI configuration
+```
+
+## High-Level Architecture
 
 ### Event Flow
 1. **Entry Point**: `all_hooks.py` receives JSON events from Claude Code via stdin
@@ -61,6 +136,22 @@ CCHH (Claude Code Hook Handlers) is a modular Python application that handles Cl
 - **Session Management**: Slack handler maintains session state in `~/.claude/slack_thread_ts/`
 - **Error Isolation**: Each handler's errors are caught independently to prevent cascading failures
 
+### Core Features
+
+#### Hook Event Types
+- **PreToolUse**: Pre-tool execution processing
+- **PostToolUse**: Post-tool execution processing
+- **Notification**: Claude notifications
+- **Stop**: Session termination
+- **UserPromptSubmit**: User prompt submission
+- **SubagentStop**: Subagent termination
+- **PreCompact**: Pre-compact processing
+
+#### Notification Systems
+- **Slack notifications**: Commands, errors, session tracking
+- **Voice feedback**: Audio guidance via Zundamon TTS
+- **Event logging**: Structured logging in JSONL format
+
 ### Module Organization
 - `src/core/`: Core types and event dispatching logic
 - `src/slack/`: Slack integration with session tracking and message formatting
@@ -68,12 +159,172 @@ CCHH (Claude Code Hook Handlers) is a modular Python application that handles Cl
 - `src/logger/`: JSONL event logging with rotation
 - `src/utils/`: Shared utilities for I/O, parsing, and configuration
 
-### Configuration
-All features are controlled via environment variables:
-- Slack: `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_NOTIFICATIONS_ENABLED`
-- Zunda: `ZUNDA_SPEAKER_ENABLED`, `ZUNDA_SPEAK_ON_PROMPT_SUBMIT`
-- Logging: `EVENT_LOGGING_ENABLED`, `LOG_MAX_SIZE_MB`
+## Configuration
 
-### Special Files
+### Environment Variables
+
+#### Slack Configuration
+- `SLACK_BOT_TOKEN`: Slack Bot Token (xoxb-...)
+- `SLACK_CHANNEL_ID`: Notification channel ID
+- `SLACK_NOTIFICATIONS_ENABLED`: Enable/disable Slack notifications (default: true)
+- `SLACK_SHOW_SESSION_START`: Show cwd on session start (default: true)
+- `SLACK_NOTIFY_ON_TOOL_USE`: Notify on tool usage (default: true)
+- `SLACK_NOTIFY_ON_STOP`: Notify on stop events (default: true)
+- `SLACK_COMMAND_MAX_LENGTH`: Max command display length (default: 200)
+
+#### Zunda Voice Configuration
+- `ZUNDA_SPEAKER_ENABLED`: Enable/disable voice feedback (default: true)
+- `ZUNDA_SPEAK_ON_PROMPT_SUBMIT`: Speak on prompt submit (default: true)
+- `ZUNDA_SPEAK_SPEED`: Speech speed (default: 1.2)
+
+#### Event Logging Configuration
+- `EVENT_LOGGING_ENABLED`: Enable/disable event logging (default: true)
+- `LOG_MAX_SIZE_MB`: Max log file size in MB (default: 100)
+- `LOG_ROTATION_COUNT`: Log rotation count (default: 5)
+
+#### Other
+- `TEST_ENVIRONMENT`: Test environment flag (disables notifications during tests)
+
+## Code Quality Configuration
+
+### Ruff Settings (pyproject.toml)
+- **Target**: Python 3.13
+- **Line length**: 88 characters
+- **Rules**: pycodestyle, pyflakes, isort, flake8-bugbear, pyupgrade
+- **Format**: Double quotes, space indentation
+
+### Test Configuration
+- **Test path**: `tests`
+- **Coverage**: term-missing reports
+- **Branch coverage**: Enabled
+- **Test files**: `test_*.py` pattern
+- **Coverage threshold**: Aim for >85%
+
+### Testing Strategy
+- Unit tests for each module
+- Mock external dependencies (Slack API, filesystem)
+- Test coverage >85%
+- Type checking with mypy
+
+## Claude Code Integration
+
+### Hook Configuration Example
+
+Add to Claude Code settings (`~/.claude/settings.json`):
+
+```json
+{
+  "permissions": {
+    "defaultMode": "acceptEdits"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python ruff_hook.py"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /path/to/cchh && uv run python all_hooks.py"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Important Notes:**
+- Event names use PascalCase (PreToolUse, PostToolUse, etc.)
+- Each event is an array containing hooks objects
+- Replace `/path/to/cchh` with actual repository path
+- PostToolUse runs both event notification and Ruff formatting
+
+## Special Files
+
+### Entry Points
+- `all_hooks.py`: Main entry point handling all hook events
 - `ruff_hook.py`: Standalone hook for PostToolUse that runs Ruff formatter on Python files
+
+### Legacy Files
 - `event_logger.sh`: Simple shell script for basic event logging (legacy)
+
+## Debugging and Monitoring
+
+### Log Files
+- `~/.claude/hooks.log`: All hook events in JSONL format
+- `~/.claude/cchh_errors.log`: Error logs
+- `~/.claude/slack_thread_ts/`: Session state files
+
+### Common Issues
+1. **Import errors**: Ensure PYTHONPATH includes project root
+2. **Slack not working**: Check SLACK_BOT_TOKEN and SLACK_CHANNEL_ID
+3. **Tests failing**: Run `uv sync` to update dependencies
+
+### Debug Mode
+Set `TEST_ENVIRONMENT=1` to disable external notifications during development.
+
+## Development Guidelines
+
+### Code Style
+- Follow PEP 8 (enforced by ruff)
+- Use type hints for all functions
+- Write docstrings for public APIs
+- Keep functions focused and testable
+
+### Testing Guidelines
+- Write tests for new features
+- Maintain test coverage >85%
+- Use descriptive test names
+- Mock external dependencies
+
+### Performance Considerations
+- Async notifications to avoid blocking CLI
+- Efficient session state caching
+- Log rotation for high-volume usage
