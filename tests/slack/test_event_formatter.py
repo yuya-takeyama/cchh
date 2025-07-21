@@ -28,11 +28,17 @@ class TestEventFormatter:
         assert message == "🚨 コマンド実行: `git commit -m 'Fix bug'`"
         assert level == NotificationLevel.CHANNEL
         
-        # Non-important command
+        # Other command (not critical or important)
         command = "ls -la"
         message, level = formatter.format_command(command)
-        assert message is None
-        assert level is None
+        assert message == "💻 コマンド実行: `ls -la`"
+        assert level == NotificationLevel.THREAD
+        
+        # uv command
+        command = "uv run task test"
+        message, level = formatter.format_command(command)
+        assert message == "💻 コマンド実行: `uv run task test`"
+        assert level == NotificationLevel.THREAD
 
     def test_format_command_multi_line(self, formatter):
         """Test multi-line command formatting with code block"""
@@ -98,6 +104,21 @@ EOF
         # Ensure the message still ends with code block
         assert message.endswith("\n```")
         assert level == NotificationLevel.CHANNEL
+        
+    def test_format_command_multi_line_other(self, formatter):
+        """Test multi-line command formatting for non-important commands"""
+        command = '''uv run python -c "
+import sys
+print('Python version:', sys.version)
+print('Hello from multi-line!')
+"'''
+        
+        message, level = formatter.format_command(command)
+        assert message.startswith("💻 コマンド実行\n```\n$ ")
+        assert "Python version:" in message
+        assert "Hello from multi-line!" in message
+        assert message.endswith("\n```")
+        assert level == NotificationLevel.THREAD
         
     def test_format_session_start(self, formatter):
         """Test session start formatting"""

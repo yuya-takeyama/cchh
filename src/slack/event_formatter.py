@@ -98,7 +98,9 @@ class EventFormatter:
             emoji = "⚡"
             level = NotificationLevel.THREAD
         else:
-            return None, None
+            # その他のコマンドもすべてスレッドレベルで通知
+            emoji = "💻"
+            level = NotificationLevel.THREAD
             
         # 複数行コマンドの場合はコードブロックで表示
         if "\n" in command:
