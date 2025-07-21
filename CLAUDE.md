@@ -104,14 +104,19 @@ cchh/
 │       └── logger.py        # Debug logger
 ├── tests/                  # Unit tests
 │   ├── __init__.py
+│   ├── conftest.py         # pytest configuration
 │   ├── core/
 │   ├── slack/
 │   ├── zunda/
 │   ├── logger/
-│   ├── utils/
 │   └── integration/
-├── test_*.py               # Helper test scripts
 ├── event_logger.sh         # Event logging script (legacy)
+├── doc_problems.md        # Documentation issues report
+├── test_problems.md       # Test issues report
+├── LICENSE                # Project license
+├── .gitignore             # Git ignore rules
+├── .claude/               # Claude Code configuration
+│   └── settings.local.json
 ├── aqua/                   # Tool management with aqua
 │   ├── aqua.yaml
 │   └── aqua-checksums.json
@@ -133,7 +138,7 @@ cchh/
 ### Key Design Patterns
 - **Plugin Architecture**: Each handler implements the `HookHandler` interface from `src/core/base.py`
 - **Dependency Injection**: Handlers are initialized conditionally based on environment variables
-- **Session Management**: Slack handler maintains session state in `~/.claude/slack_thread_ts/`
+- **Session Management**: Slack handler maintains session state in `~/.cchh/slack_threads/` and `~/.cchh/sessions/`
 - **Error Isolation**: Each handler's errors are caught independently to prevent cascading failures
 
 ### Core Features
@@ -144,8 +149,6 @@ cchh/
 - **Notification**: Claude notifications
 - **Stop**: Session termination
 - **UserPromptSubmit**: User prompt submission
-- **SubagentStop**: Subagent termination
-- **PreCompact**: Pre-compact processing
 
 #### Notification Systems
 - **Slack notifications**: Commands, errors, session tracking
@@ -197,7 +200,7 @@ cchh/
 - **Test path**: `tests`
 - **Coverage**: term-missing reports
 - **Branch coverage**: Enabled
-- **Test files**: `test_*.py` pattern
+- **Test files**: In `tests/` directory with `test_*.py` pattern
 - **Coverage threshold**: Aim for >85%
 
 ### Testing Strategy
@@ -298,9 +301,10 @@ Add to Claude Code settings (`~/.claude/settings.json`):
 ## Debugging and Monitoring
 
 ### Log Files
-- `~/.claude/hooks.log`: All hook events in JSONL format
-- `~/.claude/cchh_errors.log`: Error logs
-- `~/.claude/slack_thread_ts/`: Session state files
+- `~/.cchh/logs/events.jsonl`: All hook events in JSONL format
+- `~/.cchh/errors.log`: Error logs
+- `~/.cchh/slack_threads/`: Slack thread state files
+- `~/.cchh/sessions/`: Session state files
 
 ### Common Issues
 1. **Import errors**: Ensure PYTHONPATH includes project root
