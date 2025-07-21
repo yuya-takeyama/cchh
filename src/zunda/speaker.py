@@ -1,6 +1,7 @@
 """Zunda speaker handler"""
 
 import os
+import re
 import subprocess
 
 from ..core.base import BaseHandler
@@ -151,12 +152,17 @@ class ZundaSpeaker(BaseHandler):
         if not message:
             return
 
+        # セキュリティ: メッセージをサニタイゼーション
+        sanitized_message = self._sanitize_message(message)
+        if not sanitized_message:
+            return
+
         style = style or zunda_config.default_style.value
 
         try:
             # zundaspeak コマンドを実行
             subprocess.run(
-                ["zundaspeak", "-s", style, message],
+                ["zundaspeak", "-s", style, sanitized_message],
                 capture_output=True,
                 check=False,  # エラーでも例外を発生させない
             )
@@ -178,6 +184,55 @@ class ZundaSpeaker(BaseHandler):
                 },
                 exception=e,
             )
+
+    def _sanitize_message(self, message: str) -> str:
+        """Sanitize message for safe subprocess execution
+
+        Uses whitelist approach to allow only safe characters for voice synthesis.
+        This prevents command injection while preserving readable text.
+        """
+        # 長さ制限: 音声合成では長すぎるメッセージは不適切
+        MAX_MESSAGE_LENGTH = 1000
+        if len(message) > MAX_MESSAGE_LENGTH:
+            message = message[:MAX_MESSAGE_LENGTH]
+
+        # ホワイトリスト方式: 安全な文字のみ許可
+        # - ひらがな、カタカナ、漢字 (CJK統合漢字)
+        # - ASCII英数字
+        # - 基本的な句読点・記号
+        # - コマンド用文字（パス、オプションなど）
+        # - 空白文字
+        safe_pattern = (
+            r"["
+            r"\u3040-\u309F"
+            r"]|["
+            r"\u30A0-\u30FF"
+            r"]|["
+            r"\u4E00-\u9FAF"
+            r"]|["
+            r"\uFF01-\uFF60"
+            r"]|["
+            r"a-zA-Z0-9"
+            r"]|["
+            r"\s.,!?()[\]{}「」\'"
+            r"]|["
+            r"・ー〜：；"
+            r"]|["
+            r"/\-_=@#%&*+<>:"
+            r"]"
+        )
+
+        # 安全な文字のみを抽出
+        safe_chars = re.findall(safe_pattern, message)
+        sanitized = "".join(safe_chars)
+
+        # 連続する空白を単一の空白に正規化
+        sanitized = re.sub(r"\s+", " ", sanitized)
+
+        # 前後の空白を削除
+        sanitized = sanitized.strip()
+
+        return sanitized
 
     def _is_test_environment(self) -> bool:
         """Check if running in test environment"""

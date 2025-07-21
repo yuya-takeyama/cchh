@@ -166,7 +166,6 @@ class TestSlackNotifier:
                     f"Command not found in message: {args[0]}"
                 )
 
-
     def test_handle_task_tool(self, slack_notifier):
         """Test handling of Task tool"""
         event = HookEvent(

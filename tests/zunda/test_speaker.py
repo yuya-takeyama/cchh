@@ -309,3 +309,85 @@ class TestZundaSpeaker:
                 assert expected_formatted in message, (
                     f"Expected '{expected_formatted}' in '{message}'"
                 )
+
+    def test_message_sanitization_security(self, zunda_speaker):
+        """Test message sanitization against command injection"""
+        # Test dangerous shell characters are removed
+        dangerous_message = "hello; rm -rf /; echo evil"
+        sanitized = zunda_speaker._sanitize_message(dangerous_message)
+        assert ";" not in sanitized  # Shell separator should be removed
+        # Now -rf and / are allowed (added to whitelist for command readability)
+        expected = "hello rm -rf / echo evil"  # Dangerous ; removed, safe chars remain
+        assert sanitized == expected
+
+        # Test control characters are removed
+        control_chars = "hello\x00\x01\x02\x03\x07\x1b[31mworld"
+        sanitized = zunda_speaker._sanitize_message(control_chars)
+        assert "\x00" not in sanitized
+        assert "\x01" not in sanitized
+        assert "\x1b" not in sanitized
+        # [] are in whitelist for command use, so [31m remains (but \x1b is removed)
+        assert sanitized == "hello[31mworld"
+
+        # Test length limitation
+        long_message = "A" * 1500
+        sanitized = zunda_speaker._sanitize_message(long_message)
+        assert len(sanitized) == 1000
+
+        # Test Japanese characters are preserved
+        japanese_message = "こんにちは世界！Hello World 123"
+        sanitized = zunda_speaker._sanitize_message(japanese_message)
+        assert sanitized == "こんにちは世界！Hello World 123"
+
+        # Test whitespace normalization
+        messy_whitespace = "   hello   \t\n  world   "
+        sanitized = zunda_speaker._sanitize_message(messy_whitespace)
+        assert sanitized == "hello world"
+
+    def test_sanitization_applied_to_speech(self, zunda_speaker):
+        """Test that sanitization is applied when speaking"""
+        dangerous_message = "safe text; rm -rf /"
+
+        with patch("subprocess.run") as mock_run:
+            zunda_speaker._speak(dangerous_message)
+
+            mock_run.assert_called_once()
+            args = mock_run.call_args[0][0]
+            # Verify the message argument (4th position) is sanitized
+            actual_message = args[3]
+            assert ";" not in actual_message  # Dangerous ; should be removed
+            assert "rm" in actual_message  # Safe letters should remain
+            assert actual_message == "safe text rm -rf /"
+
+    def test_empty_or_invalid_messages(self, zunda_speaker):
+        """Test handling of empty or invalid messages"""
+        with patch("subprocess.run") as mock_run:
+            # Empty message should not call subprocess
+            zunda_speaker._speak("")
+            mock_run.assert_not_called()
+
+            # Message that becomes empty after sanitization
+            zunda_speaker._speak("\x00\x01\x02")
+            mock_run.assert_not_called()
+
+            # Reset mock for valid message test
+            mock_run.reset_mock()
+            zunda_speaker._speak("valid message")
+            mock_run.assert_called_once()
+
+    def test_command_readability_preserved(self, zunda_speaker):
+        """Test that common command patterns remain readable after sanitization"""
+        command_examples = [
+            (
+                "git commit -m 'fix: update config'",
+                "git commit -m 'fix: update config'",
+            ),
+            ("npm run build --production", "npm run build --production"),
+            ("docker run -p 8080:80 nginx", "docker run -p 8080:80 nginx"),
+            ("ls -la /home/user/", "ls -la /home/user/"),
+            ("grep -r 'pattern' src/", "grep -r 'pattern' src/"),
+        ]
+
+        for original, expected in command_examples:
+            sanitized = zunda_speaker._sanitize_message(original)
+            assert sanitized == expected, f"Failed for: {original}"
