@@ -1,6 +1,5 @@
 """Command formatting for Zunda voice synthesis"""
 
-
 from ..utils.command_parser import parse_bash_command
 
 

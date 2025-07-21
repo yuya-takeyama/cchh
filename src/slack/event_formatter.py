@@ -84,7 +84,9 @@ class EventFormatter:
 
         return message, level
 
-    def format_command(self, command: str) -> tuple[str | None, NotificationLevel | None]:
+    def format_command(
+        self, command: str
+    ) -> tuple[str | None, NotificationLevel | None]:
         """Format command message with appropriate level"""
         # 重要コマンドの分類
         if any(command.startswith(critical_cmd) for critical_cmd in CRITICAL_COMMANDS):
