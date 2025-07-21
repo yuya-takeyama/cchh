@@ -5,7 +5,6 @@ import os
 import sys
 import urllib.parse
 import urllib.request
-from typing import Optional
 
 from ..core.types import HookEvent
 from ..utils.logger import get_error_logger
@@ -175,7 +174,7 @@ class SlackNotifier:
         session_tracker: SlackSessionTracker,
         cwd: str,
         broadcast: bool = False,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Send notification to Slack"""
         # Load thread state
         thread_state = self._load_thread_state(session_tracker.session_id)

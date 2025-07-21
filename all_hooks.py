@@ -7,6 +7,7 @@ appropriate handlers (Slack notifications, Zunda voice, event logging).
 
 import json
 import sys
+
 from src.core.dispatcher import EventDispatcher
 from src.utils.io_helpers import load_hook_event, write_hook_event
 from src.utils.logger import get_debug_logger
@@ -44,7 +45,7 @@ def main() -> None:
                 write_hook_event(event, sys.stdout)
             else:
                 print(json.dumps({}))
-        except:
+        except Exception:
             print(json.dumps({}))
         sys.exit(1)
 

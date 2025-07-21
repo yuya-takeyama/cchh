@@ -1,10 +1,8 @@
 """Event logger for Claude Code Hooks"""
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from ..core.types import HookEvent
 from ..utils.config import is_test_environment
@@ -15,7 +13,7 @@ from .config import logger_config
 class EventLogger:
     """Logs all hook events to JSONL file"""
 
-    def __init__(self, log_file: Optional[Path] = None):
+    def __init__(self, log_file: Path | None = None):
         self.enabled = logger_config.enabled
         self.log_file = log_file or logger_config.event_log_file
         self.debug_logger = get_debug_logger()
@@ -89,7 +87,7 @@ class EventLogger:
             self.debug_logger.error(f"Error rotating logs: {e}")
 
     def get_recent_events(
-        self, count: int = 100, session_id: Optional[str] = None
+        self, count: int = 100, session_id: str | None = None
     ) -> list:
         """Get recent events from log
 
@@ -105,7 +103,7 @@ class EventLogger:
 
         events = []
         try:
-            with open(self.log_file, "r", encoding="utf-8") as f:
+            with open(self.log_file, encoding="utf-8") as f:
                 # Read from end of file for efficiency
                 lines = f.readlines()
                 for line in reversed(lines):

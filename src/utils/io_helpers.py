@@ -2,12 +2,12 @@
 
 import json
 import sys
-from typing import Any, Dict, Optional, TextIO
+from typing import Any, TextIO
 
 from ..core.types import HookEvent
 
 
-def load_hook_event(stream: Optional[TextIO] = None) -> HookEvent:
+def load_hook_event(stream: TextIO | None = None) -> HookEvent:
     """Load hook event from JSON input stream
 
     Args:
@@ -26,7 +26,7 @@ def load_hook_event(stream: Optional[TextIO] = None) -> HookEvent:
     try:
         data = json.loads(stream.read())
     except json.JSONDecodeError as e:
-        raise json.JSONDecodeError(f"Invalid JSON input: {e.msg}", e.doc, e.pos)
+        raise json.JSONDecodeError(f"Invalid JSON input: {e.msg}", e.doc, e.pos) from e
 
     # Validate required fields
     if "hook_event_name" not in data:
@@ -43,7 +43,7 @@ def load_hook_event(stream: Optional[TextIO] = None) -> HookEvent:
     return HookEvent.from_dict(data)
 
 
-def write_hook_event(event: HookEvent, stream: Optional[TextIO] = None) -> None:
+def write_hook_event(event: HookEvent, stream: TextIO | None = None) -> None:
     """Write hook event to output stream
 
     Args:
@@ -57,7 +57,7 @@ def write_hook_event(event: HookEvent, stream: Optional[TextIO] = None) -> None:
     stream.flush()
 
 
-def load_json_file(file_path: str) -> Dict[str, Any]:
+def load_json_file(file_path: str) -> dict[str, Any]:
     """Load JSON from file
 
     Args:
@@ -70,11 +70,11 @@ def load_json_file(file_path: str) -> Dict[str, Any]:
         FileNotFoundError: If file doesn't exist
         json.JSONDecodeError: If file is not valid JSON
     """
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_json_file(data: Dict[str, Any], file_path: str, indent: int = 2) -> None:
+def save_json_file(data: dict[str, Any], file_path: str, indent: int = 2) -> None:
     """Save data as JSON to file
 
     Args:
@@ -86,7 +86,7 @@ def save_json_file(data: Dict[str, Any], file_path: str, indent: int = 2) -> Non
         json.dump(data, f, indent=indent, ensure_ascii=False)
 
 
-def append_jsonl(data: Dict[str, Any], file_path: str) -> None:
+def append_jsonl(data: dict[str, Any], file_path: str) -> None:
     """Append data as JSON line to file
 
     Args:

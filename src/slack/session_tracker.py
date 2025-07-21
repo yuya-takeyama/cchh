@@ -3,10 +3,8 @@
 Tracks Claude Code sessions to determine when to show cwd in Slack.
 """
 
-import os
 import time
 from pathlib import Path
-from typing import Optional, Set
 
 
 class SlackSessionTracker:
@@ -15,7 +13,7 @@ class SlackSessionTracker:
     Determines if this is a new session to display cwd in Slack channel.
     """
 
-    def __init__(self, session_id: str, session_dir: Optional[Path] = None):
+    def __init__(self, session_id: str, session_dir: Path | None = None):
         self.session_id = session_id
         self.session_dir = session_dir or Path.home() / ".cchh" / "sessions"
         self.session_file = self.session_dir / f"{session_id}.session"
@@ -46,7 +44,7 @@ class SlackSessionTracker:
         """Create or update session file"""
         self.session_file.write_text(str(time.time()))
 
-    def get_active_sessions(self) -> Set[str]:
+    def get_active_sessions(self) -> set[str]:
         """Get all active session IDs"""
         active_sessions = set()
 

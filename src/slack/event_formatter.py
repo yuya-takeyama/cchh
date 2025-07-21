@@ -1,11 +1,9 @@
 """Event message formatting for Slack"""
 
 import os
-from typing import Any, Dict
+from typing import Any
 
-from ..core.types import HookEvent
 from .config import NotificationLevel
-
 
 # Slack message templates
 SLACK_MESSAGES = {
@@ -148,10 +146,14 @@ class EventFormatter:
         return message, NotificationLevel.CHANNEL
 
     def format_notification(
-        self, notification: dict[str, Any]
+        self, notification: dict[str, Any] | str
     ) -> tuple[str, NotificationLevel]:
         """Format notification message"""
-        text = notification.get("text", "")
+        # Handle both string and dict notification formats
+        if isinstance(notification, str):
+            text = notification
+        else:
+            text = notification.get("text", "")
 
         # 重要な通知の判定
         is_important = any(

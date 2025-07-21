@@ -2,14 +2,12 @@
 
 import os
 import subprocess
-from typing import Optional
 
 from ..core.types import HookEvent
 from ..utils.logger import get_error_logger
 from .command_formatter import CommandFormatter
 from .config import zunda_config
 from .prompt_formatter import PromptFormatter
-
 
 # Zundamon message templates
 ZUNDAMON_MESSAGES = {
@@ -130,19 +128,29 @@ class ZundaSpeaker:
         if not event.notification:
             return
 
-        text = event.notification.get("text", "")
+        # Handle both string and dict notification formats
+        if isinstance(event.notification, str):
+            text = event.notification
+        else:
+            text = event.notification.get("text", "")
 
         # メッセージ変換マップで処理
         voice_message = ZUNDAMON_MESSAGES.get(text)
 
         if voice_message:
-            self._speak(voice_message)
+            # Permission messages use AMAAMA style
+            if "permission" in text.lower():
+                from .config import ZundaspeakStyle
+                self._speak(voice_message, style=ZundaspeakStyle.AMAAMA.value)
+            else:
+                self._speak(voice_message)
 
     def _handle_stop(self, event: HookEvent) -> None:
         """Handle Stop event"""
-        self._speak(ZUNDAMON_MESSAGES["session_end"])
+        from .config import ZundaspeakStyle
+        self._speak(ZUNDAMON_MESSAGES["session_end"], style=ZundaspeakStyle.SEXY.value)
 
-    def _speak(self, message: str, style: Optional[str] = None) -> None:
+    def _speak(self, message: str, style: str | None = None) -> None:
         """Send voice notification via zundaspeak"""
         if not message:
             return

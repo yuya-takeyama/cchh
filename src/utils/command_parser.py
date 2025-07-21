@@ -1,10 +1,9 @@
 """Command parsing utilities"""
 
 import shlex
-from typing import Dict, List, Optional, Tuple
 
 
-def parse_bash_command(command: str) -> Dict[str, any]:
+def parse_bash_command(command: str) -> dict[str, any]:
     """Parse bash command into structured format
 
     Args:
@@ -92,7 +91,7 @@ def is_pipeline_command(command: str) -> bool:
     return any(op in command for op in ["|", ">", "<", ">>", "<<"])
 
 
-def split_pipeline(command: str) -> List[str]:
+def split_pipeline(command: str) -> list[str]:
     """Split pipeline command into individual commands
 
     Args:

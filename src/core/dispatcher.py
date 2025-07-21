@@ -1,7 +1,6 @@
 """Event dispatcher for Claude Code Hooks"""
 
 import os
-from typing import Optional
 
 from .types import HookEvent
 
@@ -14,7 +13,7 @@ class EventDispatcher:
         self.zunda = self._init_zunda()
         self.logger = self._init_logger()
 
-    def _init_slack(self) -> Optional[object]:
+    def _init_slack(self) -> object | None:
         """Initialize Slack notifier if enabled"""
         if os.getenv("SLACK_NOTIFICATIONS_ENABLED", "true").lower() == "true":
             try:
@@ -26,7 +25,7 @@ class EventDispatcher:
                 return None
         return None
 
-    def _init_zunda(self) -> Optional[object]:
+    def _init_zunda(self) -> object | None:
         """Initialize Zunda speaker if enabled"""
         if os.getenv("ZUNDA_SPEAKER_ENABLED", "true").lower() == "true":
             try:
@@ -38,7 +37,7 @@ class EventDispatcher:
                 return None
         return None
 
-    def _init_logger(self) -> Optional[object]:
+    def _init_logger(self) -> object | None:
         """Initialize event logger if enabled"""
         if os.getenv("EVENT_LOGGING_ENABLED", "true").lower() == "true":
             try:

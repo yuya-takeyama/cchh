@@ -1,7 +1,6 @@
 """Text processing utilities"""
 
 import re
-from typing import Optional
 
 
 def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:

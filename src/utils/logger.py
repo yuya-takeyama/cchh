@@ -6,13 +6,13 @@ import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class ErrorLogger:
     """Handles error logging to file"""
 
-    def __init__(self, log_file: Optional[Path] = None):
+    def __init__(self, log_file: Path | None = None):
         self.log_file = log_file or Path.home() / ".cchh" / "errors.log"
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -20,8 +20,8 @@ class ErrorLogger:
         self,
         error_type: str,
         error_message: str,
-        context: Optional[Dict[str, Any]] = None,
-        exception: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        exception: Exception | None = None,
     ) -> None:
         """Log error to file with context"""
         error_entry = {

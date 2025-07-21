@@ -1,8 +1,7 @@
 """Core type definitions for Claude Code Hooks"""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional
-
+from typing import Any, Literal
 
 HookEventName = Literal[
     "PreToolUse",
@@ -20,16 +19,16 @@ class HookEvent:
     hook_event_name: HookEventName
     session_id: str
     cwd: str
-    tool_name: Optional[str] = None
-    tool_input: Optional[Dict[str, Any]] = None
-    result: Optional[Dict[str, Any]] = None
-    prompt: Optional[str] = None
-    notification: Optional[Dict[str, Any]] = None
-    output: Optional[str] = None
-    raw_data: Optional[Dict[str, Any]] = None
+    tool_name: str | None = None
+    tool_input: dict[str, Any] | None = None
+    result: dict[str, Any] | None = None
+    prompt: str | None = None
+    notification: dict[str, Any] | None = None
+    output: str | None = None
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "HookEvent":
+    def from_dict(cls, data: dict[str, Any]) -> "HookEvent":
         """Create HookEvent from dictionary"""
         return cls(
             hook_event_name=data.get("hook_event_name", "Unknown"),
@@ -44,7 +43,7 @@ class HookEvent:
             raw_data=data,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON output"""
         if self.raw_data:
             return self.raw_data
