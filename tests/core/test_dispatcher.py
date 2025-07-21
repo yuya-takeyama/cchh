@@ -27,9 +27,9 @@ def mock_event():
 class TestEventDispatcher:
     """Test cases for EventDispatcher"""
 
-    @patch.dict(os.environ, {"SLACK_NOTIFICATIONS_ENABLED": "false"})
-    @patch.dict(os.environ, {"ZUNDA_SPEAKER_ENABLED": "false"})
-    @patch.dict(os.environ, {"EVENT_LOGGING_ENABLED": "false"})
+    @patch.dict(os.environ, {"CCHH_SLACK_NOTIFICATIONS_ENABLED": "false"})
+    @patch.dict(os.environ, {"CCHH_ZUNDA_SPEAKER_ENABLED": "false"})
+    @patch.dict(os.environ, {"CCHH_EVENT_LOGGING_ENABLED": "false"})
     def test_all_features_disabled(self):
         """Test dispatcher with all features disabled"""
         dispatcher = EventDispatcher()
@@ -38,7 +38,7 @@ class TestEventDispatcher:
         assert dispatcher.logger is None
 
     @patch("src.slack.notifier.SlackNotifier")
-    @patch.dict(os.environ, {"SLACK_NOTIFICATIONS_ENABLED": "true"})
+    @patch.dict(os.environ, {"CCHH_SLACK_NOTIFICATIONS_ENABLED": "true"})
     def test_slack_enabled(self, mock_slack_class):
         """Test dispatcher with Slack enabled"""
         mock_slack = MagicMock()
@@ -48,7 +48,7 @@ class TestEventDispatcher:
         assert dispatcher.slack is mock_slack
 
     @patch("src.zunda.speaker.ZundaSpeaker")
-    @patch.dict(os.environ, {"ZUNDA_SPEAKER_ENABLED": "true"})
+    @patch.dict(os.environ, {"CCHH_ZUNDA_SPEAKER_ENABLED": "true"})
     def test_zunda_enabled(self, mock_zunda_class):
         """Test dispatcher with Zunda enabled"""
         mock_zunda = MagicMock()
@@ -58,7 +58,7 @@ class TestEventDispatcher:
         assert dispatcher.zunda is mock_zunda
 
     @patch("src.logger.event_logger.EventLogger")
-    @patch.dict(os.environ, {"EVENT_LOGGING_ENABLED": "true"})
+    @patch.dict(os.environ, {"CCHH_EVENT_LOGGING_ENABLED": "true"})
     def test_logger_enabled(self, mock_logger_class):
         """Test dispatcher with Logger enabled"""
         mock_logger = MagicMock()
@@ -135,7 +135,7 @@ class TestEventDispatcher:
         dispatcher.dispatch(mock_event)
 
     @patch("src.slack.notifier.SlackNotifier", side_effect=ImportError)
-    @patch.dict(os.environ, {"SLACK_NOTIFICATIONS_ENABLED": "true"})
+    @patch.dict(os.environ, {"CCHH_SLACK_NOTIFICATIONS_ENABLED": "true"})
     def test_slack_import_error(self, mock_slack_class, capsys):
         """Test handling of Slack import error"""
         dispatcher = EventDispatcher()
@@ -145,7 +145,7 @@ class TestEventDispatcher:
         assert "Warning: Slack module not found" in captured.out
 
     @patch("src.zunda.speaker.ZundaSpeaker", side_effect=ImportError)
-    @patch.dict(os.environ, {"ZUNDA_SPEAKER_ENABLED": "true"})
+    @patch.dict(os.environ, {"CCHH_ZUNDA_SPEAKER_ENABLED": "true"})
     def test_zunda_import_error(self, mock_zunda_class, capsys):
         """Test handling of Zunda import error"""
         dispatcher = EventDispatcher()
@@ -155,7 +155,7 @@ class TestEventDispatcher:
         assert "Warning: Zunda module not found" in captured.out
 
     @patch("src.logger.event_logger.EventLogger", side_effect=ImportError)
-    @patch.dict(os.environ, {"EVENT_LOGGING_ENABLED": "true"})
+    @patch.dict(os.environ, {"CCHH_EVENT_LOGGING_ENABLED": "true"})
     def test_logger_import_error(self, mock_logger_class, capsys):
         """Test handling of Logger import error"""
         dispatcher = EventDispatcher()

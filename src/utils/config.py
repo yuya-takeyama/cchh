@@ -6,7 +6,7 @@ from pathlib import Path
 
 def is_test_environment() -> bool:
     """Check if running in test environment"""
-    return os.environ.get("TEST_ENVIRONMENT", "").lower() in ("1", "true", "yes")
+    return os.environ.get("CCHH_TEST_ENVIRONMENT", "").lower() in ("1", "true", "yes")
 
 
 def get_cchh_home() -> Path:
@@ -18,4 +18,4 @@ def get_cchh_home() -> Path:
 
 def get_session_id_from_env() -> str:
     """Get session ID from environment or generate default"""
-    return os.environ.get("CLAUDE_SESSION_ID", "default")
+    return os.environ.get("CCHH_CLAUDE_SESSION_ID", "default")

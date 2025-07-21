@@ -109,7 +109,7 @@ class ZundaSpeaker(BaseHandler):
                 # Debug log for voice synthesis (only in non-test environment)
                 if (
                     not self._is_test_environment()
-                    and os.getenv("ZUNDA_DEBUG", "").lower() == "true"
+                    and os.getenv("CCHH_ZUNDA_DEBUG", "").lower() == "true"
                 ):
                     debug_log_path = os.path.join(os.getcwd(), "zunda_debug.log")
                     with open(debug_log_path, "a", encoding="utf-8") as f:
@@ -189,4 +189,4 @@ class ZundaSpeaker(BaseHandler):
 
     def _is_test_environment(self) -> bool:
         """Check if running in test environment"""
-        return os.environ.get("TEST_ENVIRONMENT", "").lower() in ("1", "true", "yes")
+        return os.environ.get("CCHH_TEST_ENVIRONMENT", "").lower() in ("1", "true", "yes")

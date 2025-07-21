@@ -16,7 +16,7 @@ class EventDispatcher:
 
     def _init_slack(self) -> HookHandler | None:
         """Initialize Slack notifier if enabled"""
-        if os.getenv("SLACK_NOTIFICATIONS_ENABLED", "true").lower() == "true":
+        if os.getenv("CCHH_SLACK_NOTIFICATIONS_ENABLED", "true").lower() == "true":
             try:
                 from ..slack.notifier import SlackNotifier
 
@@ -28,7 +28,7 @@ class EventDispatcher:
 
     def _init_zunda(self) -> HookHandler | None:
         """Initialize Zunda speaker if enabled"""
-        if os.getenv("ZUNDA_SPEAKER_ENABLED", "true").lower() == "true":
+        if os.getenv("CCHH_ZUNDA_SPEAKER_ENABLED", "true").lower() == "true":
             try:
                 from ..zunda.speaker import ZundaSpeaker
 
@@ -40,7 +40,7 @@ class EventDispatcher:
 
     def _init_logger(self) -> HookHandler | None:
         """Initialize event logger if enabled"""
-        if os.getenv("EVENT_LOGGING_ENABLED", "true").lower() == "true":
+        if os.getenv("CCHH_EVENT_LOGGING_ENABLED", "true").lower() == "true":
             try:
                 from ..logger.event_logger import EventLogger
 

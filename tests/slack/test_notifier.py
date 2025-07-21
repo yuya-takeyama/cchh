@@ -62,15 +62,15 @@ class TestSlackNotifier:
     def setup_method(self):
         """Setup before each test"""
         # Store original TEST_ENVIRONMENT value
-        self.original_test_env = os.environ.get("TEST_ENVIRONMENT")
+        self.original_test_env = os.environ.get("CCHH_TEST_ENVIRONMENT")
 
     def teardown_method(self):
         """Cleanup after each test"""
         # Restore original TEST_ENVIRONMENT value
         if self.original_test_env is None:
-            os.environ.pop("TEST_ENVIRONMENT", None)
+            os.environ.pop("CCHH_TEST_ENVIRONMENT", None)
         else:
-            os.environ["TEST_ENVIRONMENT"] = self.original_test_env
+            os.environ["CCHH_TEST_ENVIRONMENT"] = self.original_test_env
 
     def test_disabled_notifier(self, slack_notifier, mock_event):
         """Test that disabled notifier doesn't send notifications"""
