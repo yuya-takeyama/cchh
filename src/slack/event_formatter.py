@@ -18,7 +18,7 @@ SLACK_MESSAGES = {
     "command_critical": "🚨 重要コマンド実行: `{command}`",
     "command_important": "⚡ コマンド実行: `{command}`",
     # File operation messages
-    "file_operation": "📝 ファイル{operation}: {filename}",
+    "file_operation": "📝 ファイル{operation}: `{filename}`",
     # Todo messages
     "todo_update": "📋 TODO更新",
     "todo_update_detail": "---\n📋 TODO更新:\n{todos}\n---",

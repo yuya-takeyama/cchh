@@ -147,7 +147,7 @@ print('Hello from multi-line!')
     def test_format_file_operation(self, formatter):
         """Test file operation formatting"""
         message, level = formatter.format_file_operation("Edit", "/home/user/project/main.py", "/home/user/project")
-        assert message == "📝 ファイルedit: main.py"
+        assert message == "📝 ファイルedit: `main.py`"
         assert level == NotificationLevel.THREAD
         
     def test_format_todo_update(self, formatter):
