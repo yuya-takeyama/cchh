@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project specific
+hook_handler_errors.log
+hooks.log
+voice_debug.log
+event_logs.json
