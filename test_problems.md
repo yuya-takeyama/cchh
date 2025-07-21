@@ -83,3 +83,101 @@ class SlackNotifier:
 
 現在、該当する8個のテストに `@pytest.mark.skip` を追加して、CIが通るようにしている。
 次のセッションで設計を見直して、適切な解決策を実装する予定。
+
+## 修正計画（2025-07-21）
+
+### 設計方針
+1. **純粋関数化**: 重要なロジックを副作用のない純粋関数として切り出す
+2. **環境変数の分離**: 環境変数への直接参照を最小限に抑え、依存性注入パターンを活用
+3. **テスタビリティの向上**: モックに頼らない、安定したユニットテストを実現
+
+### 具体的な修正計画
+
+#### 1. 環境設定の抽象化
+```python
+# src/slack/config.py に追加
+@dataclass
+class RuntimeConfig:
+    """実行時設定（環境変数から独立）"""
+    is_test_environment: bool
+    notifications_enabled: bool
+    show_session_start: bool
+    notify_on_tool_use: bool
+    notify_on_stop: bool
+
+    @classmethod
+    def from_environment(cls) -> "RuntimeConfig":
+        """環境変数から設定を読み込む（環境依存部分を集約）"""
+        return cls(
+            is_test_environment=os.getenv("TEST_ENVIRONMENT", "").lower() == "true",
+            notifications_enabled=os.getenv("SLACK_NOTIFICATIONS_ENABLED", "true").lower() == "true",
+            # ... 他の設定
+        )
+```
+
+#### 2. SlackNotifierの純粋関数化
+```python
+# src/slack/notifier.py
+class SlackNotifier:
+    def __init__(self, config: RuntimeConfig, client: WebClient = None):
+        self.config = config  # 環境変数への直接参照を排除
+        self._client = client or self._create_client()
+        
+    def should_handle_event(self, event: HookEvent) -> bool:
+        """イベントを処理すべきか判定する純粋関数"""
+        if not self.config.notifications_enabled:
+            return False
+        if self.config.is_test_environment:
+            return False
+        # 他の条件チェック
+        return True
+        
+    def format_message(self, event: HookEvent) -> dict:
+        """メッセージフォーマットを生成する純粋関数"""
+        # 副作用なしでメッセージを生成
+        pass
+```
+
+#### 3. テストの修正
+```python
+# tests/slack/test_notifier.py
+def test_handle_task_tool():
+    # 環境変数に依存しない設定を注入
+    test_config = RuntimeConfig(
+        is_test_environment=False,  # テスト用に明示的に無効化
+        notifications_enabled=True,
+        # ...
+    )
+    
+    # モックされたクライアントを注入
+    mock_client = MagicMock()
+    notifier = SlackNotifier(config=test_config, client=mock_client)
+    
+    # 純粋関数のテスト
+    event = create_test_event(...)
+    assert notifier.should_handle_event(event) is True
+    
+    message = notifier.format_message(event)
+    assert message["text"] == expected_text
+    
+    # 統合テスト（必要に応じて）
+    notifier.handle_event(event)
+    mock_client.chat_postMessage.assert_called_once()
+```
+
+#### 4. conftest.pyの見直し
+- `TEST_ENVIRONMENT`の自動設定は維持（本番環境での誤送信防止のため重要）
+- テスト時は明示的に`RuntimeConfig`を注入することで環境変数を迂回
+
+### 実装手順
+1. [ ] `RuntimeConfig`クラスの実装
+2. [ ] SlackNotifierの環境変数依存部分を`RuntimeConfig`経由に変更
+3. [ ] 純粋関数（`should_handle_event`, `format_message`等）の抽出
+4. [ ] テストの修正（環境変数に依存しない形に）
+5. [ ] `@pytest.mark.skip`の削除
+6. [ ] 全テストの実行と確認
+
+### 期待される効果
+- 環境変数への依存が明確に分離され、テストが安定する
+- 純粋関数により、ロジックのテストがモックなしで可能に
+- 保守性の高い設計により、将来の変更が容易に
