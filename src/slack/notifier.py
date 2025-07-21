@@ -20,7 +20,9 @@ class SlackNotifier(BaseHandler):
     def __init__(self, config: RuntimeConfig | None = None):
         self.config = config or RuntimeConfig.from_environment()
         self.api_url = "https://slack.com/api/chat.postMessage"
-        self.event_formatter = EventFormatter()
+        self.event_formatter = EventFormatter(
+            session_id_length=self.config.session_id_length
+        )
         self.command_formatter = CommandFormatter()
         self.error_logger = get_error_logger()
         self._session_trackers: dict[

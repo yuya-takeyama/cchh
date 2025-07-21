@@ -57,10 +57,17 @@ IMPORTANT_NOTIFICATIONS = [
 class EventFormatter:
     """Formats hook events into Slack messages"""
 
+    def __init__(self, session_id_length: int = 8):
+        self.session_id_length = session_id_length
+
     def format_session_start(self, session_id: str, cwd: str) -> str:
         """Format session start message"""
-        # セッションIDを最初の8文字に短縮
-        short_session_id = session_id[:8] if len(session_id) > 8 else session_id
+        # セッションIDを設定された文字数に短縮
+        short_session_id = (
+            session_id[: self.session_id_length]
+            if len(session_id) > self.session_id_length
+            else session_id
+        )
         return SLACK_MESSAGES["session_start"].format(
             session_id=short_session_id, cwd=self._format_cwd(cwd)
         )

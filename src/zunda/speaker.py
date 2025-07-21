@@ -144,7 +144,6 @@ class ZundaSpeaker(BaseHandler):
 
     def _handle_pre_compact(self, event: HookEvent) -> None:
         """Handle PreCompact event"""
-        _ = event  # Unused
         self._speak(ZUNDAMON_MESSAGES["pre_compact"])
 
     def _speak(self, message: str, style: str | None = None) -> None:
@@ -161,11 +160,26 @@ class ZundaSpeaker(BaseHandler):
 
         try:
             # zundaspeak コマンドを実行
-            subprocess.run(
+            result = subprocess.run(
                 ["zundaspeak", "-s", style, sanitized_message],
                 capture_output=True,
                 check=False,  # エラーでも例外を発生させない
+                text=True,
             )
+            # コマンド実行エラーをログに記録
+            if result.returncode != 0:
+                self.error_logger.log_error(
+                    error_type="zundaspeak_command_failed",
+                    error_message=f"zundaspeak exited with code {result.returncode}",
+                    context={
+                        "original_message": message,
+                        "sanitized_message": sanitized_message,
+                        "style": style,
+                        "stderr": result.stderr,
+                        "stdout": result.stdout,
+                        "return_code": result.returncode,
+                    },
+                )
         except FileNotFoundError:
             # zundaspeak がインストールされていない場合
             if not hasattr(self, "_zundaspeak_warning_shown"):
@@ -179,7 +193,8 @@ class ZundaSpeaker(BaseHandler):
                 error_type="zundaspeak_error",
                 error_message=str(e),
                 context={
-                    "message": message,
+                    "original_message": message,
+                    "sanitized_message": sanitized_message,
                     "style": style,
                 },
                 exception=e,

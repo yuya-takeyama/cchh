@@ -24,6 +24,7 @@ def slack_notifier(tmp_path):
         bot_token="xoxb-test-token",
         channel_id="C1234567890",
         command_max_length=200,
+        session_id_length=8,
         thread_dir=tmp_path / "test_threads",
     )
 
@@ -91,6 +92,7 @@ class TestSlackNotifier:
             bot_token=None,  # No token means unconfigured
             channel_id=None,  # No channel means unconfigured
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
 
@@ -470,6 +472,7 @@ class TestSlackNotifier:
             bot_token="xoxb-test-token",
             channel_id="C1234567890",
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
         notifier = SlackNotifier(config=config)
@@ -491,6 +494,7 @@ class TestSlackNotifier:
             bot_token=None,  # Not configured
             channel_id=None,  # Not configured
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
         notifier = SlackNotifier(config=config)
@@ -512,6 +516,7 @@ class TestSlackNotifier:
             bot_token="xoxb-test-token",
             channel_id="C1234567890",
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
         notifier = SlackNotifier(config=config)
@@ -533,6 +538,7 @@ class TestSlackNotifier:
             bot_token="xoxb-test-token",
             channel_id="C1234567890",
             command_max_length=200,
+            session_id_length=8,
             thread_dir=tmp_path / "test_threads",
         )
         notifier = SlackNotifier(config=config)

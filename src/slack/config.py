@@ -25,6 +25,7 @@ class RuntimeConfig:
     bot_token: str | None
     channel_id: str | None
     command_max_length: int
+    session_id_length: int
     thread_dir: Path
 
     @classmethod
@@ -50,6 +51,9 @@ class RuntimeConfig:
             channel_id=os.environ.get("CCHH_SLACK_CHANNEL_ID"),
             command_max_length=int(
                 os.environ.get("CCHH_SLACK_COMMAND_MAX_LENGTH", "200")
+            ),
+            session_id_length=int(
+                os.environ.get("CCHH_SLACK_SESSION_ID_LENGTH", "8")
             ),
             thread_dir=thread_dir,
         )
@@ -97,4 +101,4 @@ class SlackConfig:
 
 
 # Global instance
-slack_config = SlackConfig()
+slack_config: SlackConfig = SlackConfig()
