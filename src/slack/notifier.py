@@ -159,7 +159,8 @@ class SlackNotifier(BaseHandler):
         """Handle Stop event"""
         message = "🛑 Claude Codeセッション終了"
         self._send_notification(
-            message, NotificationLevel.THREAD, session_tracker, event.cwd
+            message, NotificationLevel.THREAD, session_tracker, event.cwd,
+            broadcast=True
         )
 
     def _handle_user_prompt_submit(

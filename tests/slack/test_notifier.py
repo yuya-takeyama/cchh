@@ -309,6 +309,9 @@ class TestSlackNotifier:
             mock_send.assert_called()
             args = mock_send.call_args[0]
             assert "🛑" in args[0]
+            # Check that broadcast is True
+            kwargs = mock_send.call_args[1]
+            assert kwargs.get("broadcast") is True
 
     def test_handle_user_prompt(self, slack_notifier):
         """Test handling of user prompt"""
