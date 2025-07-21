@@ -166,10 +166,32 @@ print('Hello from multi-line!')
 
     def test_format_file_operation(self, formatter):
         """Test file operation formatting"""
+        # Edit operation
         message, level = formatter.format_file_operation(
             "Edit", "/home/user/project/main.py", "/home/user/project"
         )
-        assert message == "📝 ファイルedit: `main.py`"
+        assert message == "📝 ファイル編集: `main.py`"
+        assert level == NotificationLevel.THREAD
+
+        # Write operation
+        message, level = formatter.format_file_operation(
+            "Write", "/home/user/project/new_file.py", "/home/user/project"
+        )
+        assert message == "📝 ファイル作成: `new_file.py`"
+        assert level == NotificationLevel.THREAD
+
+        # MultiEdit operation
+        message, level = formatter.format_file_operation(
+            "MultiEdit", "/home/user/project/config.py", "/home/user/project"
+        )
+        assert message == "📝 ファイル編集: `config.py`"
+        assert level == NotificationLevel.THREAD
+
+        # Unknown operation (fallback to lowercase)
+        message, level = formatter.format_file_operation(
+            "SomeOtherTool", "/home/user/project/test.py", "/home/user/project"
+        )
+        assert message == "📝 ファイルsomeothertool: `test.py`"
         assert level == NotificationLevel.THREAD
 
     def test_format_todo_update(self, formatter):

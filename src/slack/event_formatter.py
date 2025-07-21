@@ -145,8 +145,16 @@ class EventFormatter:
             # 異なるドライブの場合など、相対パス計算できない場合は絶対パス
             relative_path = file_path
 
+        # 操作名を日本語に変換
+        operation_map = {
+            "Edit": "編集",
+            "Write": "作成",
+            "MultiEdit": "編集",
+        }
+        operation = operation_map.get(tool_name, tool_name.lower())
+
         message = SLACK_MESSAGES["file_operation"].format(
-            operation=tool_name.lower(), filename=relative_path
+            operation=operation, filename=relative_path
         )
         return message, NotificationLevel.THREAD
 
