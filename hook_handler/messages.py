@@ -1,6 +1,5 @@
 """Message translations and templates"""
 
-
 ZUNDAMON_MESSAGES: dict[str, str] = {
     # Task messages
     "task_execute": "タスク実行するのだ",

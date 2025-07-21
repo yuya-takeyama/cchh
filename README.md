@@ -37,14 +37,21 @@ Claude Codeの設定ファイル（~/.claude/settings.json または settings.lo
 ```json
 {
   "hooks": {
-    "preToolUse": "python /path/to/cchh/hook_handler.py",
-    "postToolUse": "python /path/to/cchh/hook_handler.py",
-    "notification": "python /path/to/cchh/hook_handler.py",
-    "stop": "python /path/to/cchh/hook_handler.py",
-    "userPromptSubmit": "python /path/to/cchh/hook_handler.py"
+    "preToolUse": "cd /path/to/cchh && uv run python all_hooks.py",
+    "postToolUse": [
+      "cd /path/to/cchh && uv run python all_hooks.py",
+      "cd /path/to/cchh && uv run python ruff_hook.py"
+    ],
+    "notification": "cd /path/to/cchh && uv run python all_hooks.py",
+    "stop": "cd /path/to/cchh && uv run python all_hooks.py",
+    "userPromptSubmit": "cd /path/to/cchh && uv run python all_hooks.py"
   }
 }
 ```
+
+注意：
+- `postToolUse`では、エラー通知（all_hooks.py）とRuffフォーマット（ruff_hook.py）の両方を実行します
+- Ruffフォーマットが不要な場合は、`ruff_hook.py`の行を削除してください
 
 ### 4. 環境変数の設定
 
@@ -59,29 +66,41 @@ export SLACK_CHANNEL_ID="C0123456789"
 
 ```
 .
+├── all_hooks.py                 # メインエントリーポイント（全イベント処理）
+├── ruff_hook.py                 # Ruffフォーマット専用フック
 ├── hook_handler.py              # エントリーポイント（後方互換性用）
-├── test_hook_handler.py         # テストランナー
-├── hook_handler/                # メインパッケージ
+├── src/                         # 新しいモジュール構造
 │   ├── __init__.py
-│   ├── main.py                  # メインエントリーポイント
-│   ├── config.py                # 設定管理
-│   ├── messages.py              # メッセージテンプレート
-│   ├── command_converter.py     # コマンド変換ロジック
-│   ├── utils.py                 # ユーティリティ関数
-│   ├── session.py               # セッション管理
-│   ├── notifiers.py             # 通知ハンドラー（Slack/Zundaspeak）
-│   ├── handlers.py              # Hookイベントハンドラー
-│   ├── logger.py                # ロギング
-│   ├── py.typed                 # 型ヒントサポート
-│   └── tests/                   # テストスイート
+│   ├── core/                    # コア機能
+│   │   ├── __init__.py
+│   │   ├── dispatcher.py        # イベントディスパッチャー
+│   │   └── types.py             # 型定義
+│   ├── slack/                   # Slack通知機能
+│   │   ├── __init__.py
+│   │   ├── notifier.py          # Slack通知メイン
+│   │   ├── session_tracker.py   # セッション管理
+│   │   ├── event_formatter.py   # イベントメッセージ整形
+│   │   ├── command_formatter.py # コマンド整形
+│   │   └── config.py            # Slack設定
+│   ├── zunda/                   # ずんだもん音声機能
+│   │   ├── __init__.py
+│   │   ├── speaker.py           # 音声読み上げメイン
+│   │   ├── prompt_formatter.py  # プロンプト整形
+│   │   ├── command_formatter.py # コマンド整形（音声用）
+│   │   └── config.py            # ずんだもん設定
+│   ├── logger/                  # イベントロギング
+│   │   ├── __init__.py
+│   │   ├── event_logger.py      # JSONLロガー
+│   │   └── config.py            # ロガー設定
+│   └── utils/                   # 共通ユーティリティ
 │       ├── __init__.py
-│       ├── conftest.py          # pytest設定
-│       ├── test_command_converter.py
-│       ├── test_utils.py
-│       ├── test_session.py
-│       ├── test_notifiers.py
-│       ├── test_handlers.py
-│       └── test_logger.py
+│       ├── command_parser.py    # コマンド解析
+│       ├── text_utils.py        # テキスト処理
+│       ├── config.py            # 共通設定
+│       ├── logger.py            # デバッグロガー
+│       └── io_helpers.py        # I/Oヘルパー
+├── hook_handler/                # 既存パッケージ（後方互換性）
+├── tests/                       # テストディレクトリ
 ├── pyproject.toml               # プロジェクト設定
 ├── aqua/                        # aqua設定（ツール管理）
 │   ├── aqua.yaml
@@ -93,11 +112,28 @@ export SLACK_CHANNEL_ID="C0123456789"
 
 ## 設定
 
-環境変数で設定：
+### 環境変数
 
+#### Slack通知設定
 - `SLACK_BOT_TOKEN`: Slack Bot Token (xoxb-...)
 - `SLACK_CHANNEL_ID`: 通知先のSlackチャンネルID
-- `SLACK_ENABLED`: Slack通知の有効/無効 (デフォルト: 1)
+- `SLACK_NOTIFICATIONS_ENABLED`: Slack通知全体のON/OFF (デフォルト: true)
+- `SLACK_SHOW_SESSION_START`: セッション開始時のcwd表示 (デフォルト: true)
+- `SLACK_NOTIFY_ON_TOOL_USE`: ツール使用時の通知 (デフォルト: true)
+- `SLACK_NOTIFY_ON_STOP`: 処理終了時の通知 (デフォルト: true)
+- `SLACK_COMMAND_MAX_LENGTH`: コマンド表示の最大文字数 (デフォルト: 200)
+
+#### ずんだもん音声設定
+- `ZUNDA_SPEAKER_ENABLED`: ずんだもん音声全体のON/OFF (デフォルト: true)
+- `ZUNDA_SPEAK_ON_PROMPT_SUBMIT`: プロンプト送信時の読み上げ (デフォルト: true)
+- `ZUNDA_SPEAK_SPEED`: 読み上げ速度 (デフォルト: 1.2)
+
+#### イベントロギング設定
+- `EVENT_LOGGING_ENABLED`: イベントロギングのON/OFF (デフォルト: true)
+- `LOG_MAX_SIZE_MB`: ログファイルの最大サイズ（MB） (デフォルト: 100)
+- `LOG_ROTATION_COUNT`: ログローテーション数 (デフォルト: 5)
+
+#### その他
 - `TEST_ENVIRONMENT`: テスト環境フラグ（テスト時は通知を送信しない）
 
 ## 開発
