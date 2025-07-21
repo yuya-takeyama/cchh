@@ -124,13 +124,32 @@ print('Hello from multi-line!')
         """Test session start formatting"""
         # Test with absolute path (not home directory)
         message = formatter.format_session_start("test-session-123", "/tmp/project")
-        assert message == ":clapper: `test-session-123` `/tmp/project`"
+        assert message == ":clapper: `test-ses` `/tmp/project`"
         
         # Test with home directory path
         import os
         home_path = os.path.expanduser("~/project")
         message = formatter.format_session_start("test-session-123", home_path)
+        assert "`test-ses`" in message
         assert "`~/project`" in message
+        
+        # Test with long session ID
+        long_session_id = "32334be6-ebad-42a6-b54e-ce108a16ee46"
+        message = formatter.format_session_start(long_session_id, "/tmp/project")
+        assert "`32334be6`" in message
+        
+        # Test with github.com repository path
+        home = os.path.expanduser("~")
+        github_path = os.path.join(home, "src", "github.com", "yuya-takeyama", "cchh")
+        message = formatter.format_session_start(long_session_id, github_path)
+        assert "`32334be6`" in message
+        assert "`yuya-takeyama/cchh`" in message
+        
+        # Test with other home directory path
+        home_other_path = os.path.expanduser("~/.claude/scripts")
+        message = formatter.format_session_start("test-session", home_other_path)
+        assert "`test-ses`" in message
+        assert "`~/.claude/scripts`" in message
         
     def test_format_task_start(self, formatter):
         """Test task start formatting"""

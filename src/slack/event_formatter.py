@@ -59,8 +59,10 @@ class EventFormatter:
 
     def format_session_start(self, session_id: str, cwd: str) -> str:
         """Format session start message"""
+        # セッションIDを最初の8文字に短縮
+        short_session_id = session_id[:8] if len(session_id) > 8 else session_id
         return SLACK_MESSAGES["session_start"].format(
-            session_id=session_id, cwd=self._format_cwd(cwd)
+            session_id=short_session_id, cwd=self._format_cwd(cwd)
         )
 
     def format_task_start(
@@ -209,8 +211,16 @@ class EventFormatter:
     def _format_cwd(self, cwd: str) -> str:
         """Format cwd for Slack display"""
         home = str(os.path.expanduser("~"))
+        
+        # まず ~/src/github.com/ のプレフィックスを削除
+        github_prefix = os.path.join(home, "src", "github.com", "")
+        if cwd.startswith(github_prefix):
+            return cwd[len(github_prefix):]
+        
+        # それ以外の場合は $HOME を ~ に置き換え
         if cwd.startswith(home):
             return cwd.replace(home, "~", 1)
+        
         return cwd
 
     def _extract_permission_tool_name(self, text: str) -> str | None:
