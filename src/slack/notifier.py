@@ -23,7 +23,13 @@ class SlackNotifier(BaseHandler):
         self.event_formatter = EventFormatter()
         self.command_formatter = CommandFormatter()
         self.error_logger = get_error_logger()
-        self._session_trackers: dict[str, SlackSessionTracker] = {}  # Cache session trackers
+        self._session_trackers: dict[
+            str, SlackSessionTracker
+        ] = {}  # Cache session trackers
+
+        # Ensure thread directory exists
+        if self.config.is_configured:
+            self.config.thread_dir.mkdir(parents=True, exist_ok=True)
 
     def handle_event(self, event: HookEvent) -> None:
         """Handle incoming hook event"""

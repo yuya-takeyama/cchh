@@ -36,7 +36,6 @@ class RuntimeConfig:
             return value in ("1", "true", "yes")
 
         thread_dir = Path.home() / ".cchh" / "slack_threads"
-        thread_dir.mkdir(parents=True, exist_ok=True)
 
         return cls(
             is_test_environment=os.getenv("TEST_ENVIRONMENT", "").lower() == "true",
@@ -53,7 +52,7 @@ class RuntimeConfig:
     @property
     def is_configured(self) -> bool:
         """Check if Slack is properly configured"""
-        return bool(self.bot_token and self.channel_id)
+        return self.bot_token is not None and self.channel_id is not None
 
 
 class SlackConfig:
@@ -83,7 +82,7 @@ class SlackConfig:
     @property
     def is_configured(self) -> bool:
         """Check if Slack is properly configured"""
-        return bool(self.bot_token and self.channel_id)
+        return self.bot_token is not None and self.channel_id is not None
 
 
 # Global instance

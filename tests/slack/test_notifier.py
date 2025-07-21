@@ -257,9 +257,7 @@ class TestSlackNotifier:
             args = mock_send.call_args[0]
             assert "❌" in args[0]
             assert "Command failed" in args[0]
-            assert (
-                args[1] == NotificationLevel.CHANNEL
-            )  # Error should be high priority
+            assert args[1] == NotificationLevel.CHANNEL  # Error should be high priority
 
     def test_handle_task_completion(self, slack_notifier):
         """Test handling of task completion"""
@@ -420,3 +418,87 @@ class TestSlackNotifier:
         request = second_call[0][0]
         data = json.loads(request.data.decode("utf-8"))
         assert data.get("thread_ts") == "1234567890.123456"
+
+    def test_should_handle_event_notifications_disabled(self, tmp_path):
+        """Test should_handle_event with notifications disabled"""
+        config = RuntimeConfig(
+            is_test_environment=False,
+            notifications_enabled=False,  # Disabled
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token="xoxb-test-token",
+            channel_id="C1234567890",
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
+        notifier = SlackNotifier(config=config)
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+        )
+        assert notifier.should_handle_event(event) is False
+
+    def test_should_handle_event_not_configured(self, tmp_path):
+        """Test should_handle_event with missing configuration"""
+        config = RuntimeConfig(
+            is_test_environment=False,
+            notifications_enabled=True,
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token=None,  # Not configured
+            channel_id=None,  # Not configured
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
+        notifier = SlackNotifier(config=config)
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+        )
+        assert notifier.should_handle_event(event) is False
+
+    def test_should_handle_event_test_environment(self, tmp_path):
+        """Test should_handle_event in test environment"""
+        config = RuntimeConfig(
+            is_test_environment=True,  # Test environment
+            notifications_enabled=True,
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token="xoxb-test-token",
+            channel_id="C1234567890",
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
+        notifier = SlackNotifier(config=config)
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+        )
+        assert notifier.should_handle_event(event) is False
+
+    def test_should_handle_event_all_conditions_met(self, tmp_path):
+        """Test should_handle_event when all conditions are met"""
+        config = RuntimeConfig(
+            is_test_environment=False,
+            notifications_enabled=True,
+            show_session_start=True,
+            notify_on_tool_use=True,
+            notify_on_stop=True,
+            bot_token="xoxb-test-token",
+            channel_id="C1234567890",
+            command_max_length=200,
+            thread_dir=tmp_path / "test_threads",
+        )
+        notifier = SlackNotifier(config=config)
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+        )
+        assert notifier.should_handle_event(event) is True
