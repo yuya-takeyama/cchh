@@ -161,8 +161,11 @@ class SlackNotifier(BaseHandler):
         """Handle Stop event"""
         message = "🛑 Claude Codeセッション終了"
         self._send_notification(
-            message, NotificationLevel.THREAD, session_tracker, event.cwd,
-            broadcast=True
+            message,
+            NotificationLevel.THREAD,
+            session_tracker,
+            event.cwd,
+            broadcast=True,
         )
 
     def _handle_user_prompt_submit(
@@ -180,15 +183,18 @@ class SlackNotifier(BaseHandler):
             event.cwd,
             broadcast=True,
         )
-    
+
     def _handle_pre_compact(
         self, event: HookEvent, session_tracker: SlackSessionTracker
     ) -> None:
         """Handle PreCompact event"""
         message = "⚠️ コンテキストが長くなってきました。新しいセッションの開始を検討してください。"
         self._send_notification(
-            message, NotificationLevel.THREAD, session_tracker, event.cwd,
-            broadcast=True
+            message,
+            NotificationLevel.THREAD,
+            session_tracker,
+            event.cwd,
+            broadcast=True,
         )
 
     def _send_notification(

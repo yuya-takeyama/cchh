@@ -38,14 +38,19 @@ class RuntimeConfig:
         thread_dir = Path.home() / ".cchh" / "slack_threads"
 
         return cls(
-            is_test_environment=os.getenv("CCHH_TEST_ENVIRONMENT", "").lower() == "true",
-            notifications_enabled=_get_bool_env("CCHH_SLACK_NOTIFICATIONS_ENABLED", True),
+            is_test_environment=os.getenv("CCHH_TEST_ENVIRONMENT", "").lower()
+            == "true",
+            notifications_enabled=_get_bool_env(
+                "CCHH_SLACK_NOTIFICATIONS_ENABLED", True
+            ),
             show_session_start=_get_bool_env("CCHH_SLACK_SHOW_SESSION_START", True),
             notify_on_tool_use=_get_bool_env("CCHH_SLACK_NOTIFY_ON_TOOL_USE", True),
             notify_on_stop=_get_bool_env("CCHH_SLACK_NOTIFY_ON_STOP", True),
             bot_token=os.environ.get("CCHH_SLACK_BOT_TOKEN"),
             channel_id=os.environ.get("CCHH_SLACK_CHANNEL_ID"),
-            command_max_length=int(os.environ.get("CCHH_SLACK_COMMAND_MAX_LENGTH", "200")),
+            command_max_length=int(
+                os.environ.get("CCHH_SLACK_COMMAND_MAX_LENGTH", "200")
+            ),
             thread_dir=thread_dir,
         )
 
@@ -65,10 +70,16 @@ class SlackConfig:
         self.channel_id = os.environ.get("CCHH_SLACK_CHANNEL_ID")
 
         # Slack feature toggles
-        self.show_session_start = self._get_bool_env("CCHH_SLACK_SHOW_SESSION_START", True)
-        self.notify_on_tool_use = self._get_bool_env("CCHH_SLACK_NOTIFY_ON_TOOL_USE", True)
+        self.show_session_start = self._get_bool_env(
+            "CCHH_SLACK_SHOW_SESSION_START", True
+        )
+        self.notify_on_tool_use = self._get_bool_env(
+            "CCHH_SLACK_NOTIFY_ON_TOOL_USE", True
+        )
         self.notify_on_stop = self._get_bool_env("CCHH_SLACK_NOTIFY_ON_STOP", True)
-        self.command_max_length = int(os.environ.get("CCHH_SLACK_COMMAND_MAX_LENGTH", "200"))
+        self.command_max_length = int(
+            os.environ.get("CCHH_SLACK_COMMAND_MAX_LENGTH", "200")
+        )
 
         # Thread management directory
         self.thread_dir = Path.home() / ".cchh" / "slack_threads"

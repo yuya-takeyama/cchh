@@ -103,7 +103,7 @@ class EventFormatter:
             # その他のコマンドもすべてスレッドレベルで通知
             emoji = "💻"
             level = NotificationLevel.THREAD
-            
+
         # 複数行コマンドの場合はコードブロックで表示
         if "\n" in command:
             # コマンド内のバッククォートをエスケープ
@@ -111,7 +111,7 @@ class EventFormatter:
             message = f"{emoji} コマンド実行\n```\n$ {escaped_command}\n```"
         else:
             message = f"{emoji} コマンド実行: `{command}`"
-            
+
         return message, level
 
     def format_todo_update(
@@ -211,16 +211,16 @@ class EventFormatter:
     def _format_cwd(self, cwd: str) -> str:
         """Format cwd for Slack display"""
         home = str(os.path.expanduser("~"))
-        
+
         # まず ~/src/github.com/ のプレフィックスを削除
         github_prefix = os.path.join(home, "src", "github.com", "")
         if cwd.startswith(github_prefix):
-            return cwd[len(github_prefix):]
-        
+            return cwd[len(github_prefix) :]
+
         # それ以外の場合は $HOME を ~ に置き換え
         if cwd.startswith(home):
             return cwd.replace(home, "~", 1)
-        
+
         return cwd
 
     def _extract_permission_tool_name(self, text: str) -> str | None:

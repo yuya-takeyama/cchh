@@ -140,7 +140,7 @@ class ZundaSpeaker(BaseHandler):
         from .config import ZundaspeakStyle
 
         self._speak(ZUNDAMON_MESSAGES["session_end"], style=ZundaspeakStyle.SEXY.value)
-    
+
     def _handle_pre_compact(self, event: HookEvent) -> None:
         """Handle PreCompact event"""
         _ = event  # Unused
@@ -181,4 +181,8 @@ class ZundaSpeaker(BaseHandler):
 
     def _is_test_environment(self) -> bool:
         """Check if running in test environment"""
-        return os.environ.get("CCHH_TEST_ENVIRONMENT", "").lower() in ("1", "true", "yes")
+        return os.environ.get("CCHH_TEST_ENVIRONMENT", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        )

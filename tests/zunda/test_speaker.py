@@ -193,7 +193,9 @@ class TestZundaSpeaker:
 
     def test_disabled_via_env(self):
         """Test that speaker can be disabled via environment"""
-        with patch.dict(os.environ, {"CCHH_ZUNDA_SPEAKER_ENABLED": "false"}, clear=True):
+        with patch.dict(
+            os.environ, {"CCHH_ZUNDA_SPEAKER_ENABLED": "false"}, clear=True
+        ):
             # Need to re-import the config to pick up the environment variable
             with patch("src.zunda.speaker.zunda_config") as mock_config:
                 mock_config.enabled = False
@@ -207,15 +209,15 @@ class TestZundaSpeaker:
             session_id="test-session",
             cwd="/test",
         )
-        
+
         with patch("subprocess.run") as mock_run:
             zunda_speaker.handle_event(event)
-            
+
             mock_run.assert_called_once()
             args = mock_run.call_args[0][0]
             assert "コンテキストが長くなってきたのだ" in args[3]
             assert "新しいセッション" in args[3]
-    
+
     def test_git_commands_formatting(self, zunda_speaker):
         """Test various git commands are formatted correctly"""
         git_commands = [
