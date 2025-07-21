@@ -128,6 +128,22 @@ class TestZundaSpeaker:
             args = mock_run.call_args[0][0]
             assert "git commit" in args[3]
 
+    def test_handle_web_fetch(self, zunda_speaker):
+        """Test handling of WebFetch operations"""
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+            tool_name="WebFetch",
+            tool_input={"url": "https://example.com/article", "prompt": "Test prompt"},
+        )
+
+        with patch("subprocess.run") as mock_run:
+            zunda_speaker.handle_event(event)
+            mock_run.assert_called_once()
+            args = mock_run.call_args[0][0]
+            assert "ウェブサイトexample.comをチェックするのだ" == args[3]
+
     def test_handle_notification_permission(self, zunda_speaker):
         """Test handling of permission notifications"""
         event = HookEvent(
@@ -146,6 +162,22 @@ class TestZundaSpeaker:
                 ZundaspeakStyle.AMAAMA.value
             )  # Should use AMAAMA style
             assert "許可" in args[3]
+
+    def test_handle_notification_fetch_permission(self, zunda_speaker):
+        """Test handling of Fetch permission notifications"""
+        event = HookEvent(
+            hook_event_name="Notification",
+            session_id="test-session",
+            cwd="/test",
+            notification="Claude needs your permission to use Fetch",
+        )
+
+        with patch("subprocess.run") as mock_run:
+            zunda_speaker.handle_event(event)
+            mock_run.assert_called_once()
+            args = mock_run.call_args[0][0]
+            assert args[2] == str(ZundaspeakStyle.AMAAMA.value)
+            assert "Webアクセスの許可が欲しいのだ" == args[3]
 
     def test_handle_stop_event(self, zunda_speaker):
         """Test handling of stop event"""

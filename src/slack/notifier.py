@@ -114,6 +114,12 @@ class SlackNotifier(BaseHandler):
                 )
                 notifications.append((message, level))
 
+        elif event.tool_name == "WebFetch":
+            url = event.tool_input.get("url", "")
+            if url:
+                message, level = self.event_formatter.format_web_fetch(url)
+                notifications.append((message, level))
+
         # Send all notifications
         for message, level in notifications:
             self._send_notification(message, level, session_tracker, event.cwd)

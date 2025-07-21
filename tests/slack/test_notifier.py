@@ -242,6 +242,21 @@ class TestSlackNotifier:
             args = mock_send.call_args[0]
             assert "git diff origin/main...HEAD" in args[0]
 
+    def test_handle_web_fetch(self, slack_notifier):
+        """Test handling of WebFetch operations"""
+        event = HookEvent(
+            hook_event_name="PreToolUse",
+            session_id="test-session",
+            cwd="/test",
+            tool_name="WebFetch",
+            tool_input={"url": "https://example.com/article", "prompt": "Test prompt"},
+        )
+        with patch.object(slack_notifier, "_send_notification") as mock_send:
+            slack_notifier.handle_event(event)
+            mock_send.assert_called()
+            args = mock_send.call_args[0]
+            assert "🌐 Web取得: https://example.com/article" == args[0]
+
     def test_handle_git_status_command(self, slack_notifier):
         """Test that git status commands are now notified in Slack"""
         event = HookEvent(

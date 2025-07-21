@@ -52,9 +52,7 @@ class RuntimeConfig:
             command_max_length=int(
                 os.environ.get("CCHH_SLACK_COMMAND_MAX_LENGTH", "200")
             ),
-            session_id_length=int(
-                os.environ.get("CCHH_SLACK_SESSION_ID_LENGTH", "8")
-            ),
+            session_id_length=int(os.environ.get("CCHH_SLACK_SESSION_ID_LENGTH", "8")),
             thread_dir=thread_dir,
         )
 
