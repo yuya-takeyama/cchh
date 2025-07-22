@@ -148,6 +148,12 @@ class MinimalMCPServer:
 
 def main():
     """メインエントリーポイント"""
+    # 起動時に即座にログ出力
+    logging.info("=== MCP Server Starting ===")
+    logging.info(f"Process ID: {os.getpid()}")
+    logging.info(f"Working directory: {os.getcwd()}")
+    logging.info(f"Python executable: {sys.executable}")
+    
     server = MinimalMCPServer()
     try:
         server.run()
@@ -155,6 +161,8 @@ def main():
         logging.info("Server interrupted by user")
     except Exception as e:
         logging.error(f"Server error: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         sys.exit(1)
 
 
