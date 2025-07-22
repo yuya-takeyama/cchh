@@ -181,9 +181,7 @@ class EventFormatter:
         )
         return message, NotificationLevel.CHANNEL
 
-    def format_notification(
-        self, notification: str
-    ) -> tuple[str, NotificationLevel]:
+    def format_notification(self, notification: str) -> tuple[str, NotificationLevel]:
         """Format notification message"""
         text = notification
 

@@ -64,8 +64,8 @@ class TestLoadHookEvent:
         """Test error handling for missing hook_event_name"""
         event_data = {
             "data": {
-                "session_id": "test-session", 
-                "cwd": "/test"
+                "session_id": "test-session",
+                "cwd": "/test",
                 # hook_event_name is missing
             }
         }
@@ -142,20 +142,20 @@ class TestNormalizeHookEventData:
         assert "notification" not in result
         assert result["message"] == "Some message"
 
-    def test_existing_notification_preserved(self):
-        """Test that existing notification field is preserved"""
+    def test_notification_not_overridden_if_exists(self):
+        """Test edge case where notification field already exists (shouldn't happen in real Claude Code)"""
         data = {
             "data": {
                 "hook_event_name": "Notification",
                 "message": "Message field",
-                "notification": "Notification field",
+                "notification": "Existing notification field",
             }
         }
 
         result = _normalize_hook_event_data(data)
 
-        # Should preserve existing notification, not override with message
-        assert result["notification"] == "Notification field"
+        # Should not override existing notification (defensive programming)
+        assert result["notification"] == "Existing notification field"
 
     def test_non_dict_data_field(self):
         """Test handling of non-dict data field"""
@@ -171,12 +171,9 @@ class TestNormalizeHookEventData:
         assert result == raw_data
         assert result is not raw_data  # Should be a copy
 
-    def test_notification_string_type(self):
-        """Test that notification field can be a string type"""
-        from src.utils.io_helpers import load_hook_event
-
-        # Test with string notification in nested format
-        nested_event = {
+    def test_notification_field_from_message(self):
+        """Test that message field is converted to notification field"""
+        event_data = {
             "data": {
                 "hook_event_name": "Notification",
                 "session_id": "test-session",
@@ -185,9 +182,9 @@ class TestNormalizeHookEventData:
             }
         }
 
-        stream = io.StringIO(json.dumps(nested_event))
+        stream = io.StringIO(json.dumps(event_data))
         event = load_hook_event(stream)
 
-        # Verify notification field is a string
+        # Verify message was converted to notification field
         assert event.notification == "Claude needs your permission to use Bash"
         assert isinstance(event.notification, str)
