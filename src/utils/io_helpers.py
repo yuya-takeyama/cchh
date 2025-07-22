@@ -53,23 +53,31 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
 def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
     """Normalize Claude Code event data structure
 
-    Claude Code sends events in a nested format where the actual event data
-    is inside a 'data' field. This function flattens the structure and maps
-    the 'message' field to 'notification' for Notification events.
+    Claude Code can send events in two formats:
+    1. Flat format: {"hook_event_name": "...", "session_id": "...", ...}
+    2. Nested format: {"data": {"hook_event_name": "...", ...}}
+
+    This function normalizes both formats and maps the 'message' field
+    to 'notification' for Notification events.
 
     Args:
-        raw_data: Raw event data from Claude Code (always nested format)
+        raw_data: Raw event data from Claude Code
 
     Returns:
         Normalized event data
     """
-    # Start with the nested data
-    data = raw_data["data"].copy()
+    # Check if this is a nested format (has 'data' field)
+    if "data" in raw_data and isinstance(raw_data["data"], dict):
+        # Nested format - flatten it
+        data = raw_data["data"].copy()
 
-    # Copy top-level fields that aren't in nested data
-    for key, value in raw_data.items():
-        if key != "data" and key not in data:
-            data[key] = value
+        # Copy top-level fields that aren't in nested data
+        for key, value in raw_data.items():
+            if key != "data" and key not in data:
+                data[key] = value
+    else:
+        # Flat format - use as is
+        data = raw_data.copy()
 
     # Special handling for Notification events
     if (
@@ -77,7 +85,7 @@ def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
         and "message" in data
         and "notification" not in data
     ):
-        # Map data.message to notification field
+        # Map message to notification field
         data["notification"] = data["message"]
 
     return data
