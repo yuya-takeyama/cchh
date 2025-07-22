@@ -12,21 +12,15 @@ from src.utils.io_helpers import _normalize_hook_event_data, load_hook_event
 class TestLoadHookEvent:
     """Test cases for load_hook_event function"""
 
-    def test_load_nested_notification_event(self):
-        """Test loading nested notification event (real Claude Code format)"""
-        # Real Claude Code event structure from issue #14
+    def test_load_flat_notification_event(self):
+        """Test loading flat notification event (real Claude Code format)"""
+        # Real Claude Code sends flat format
         event_data = {
-            "timestamp": "2025-07-22T08:43:46.231704Z",
-            "hook_type": "Notification",
             "session_id": "5554b911-618f-476b-abee-384e610a82d7",
+            "transcript_path": "/Users/yuya/.claude/projects/-Users-yuya-src-github-com-yuya-takeyama-cchh/5554b911-618f-476b-abee-384e610a82d7.jsonl",
             "cwd": "/Users/yuya/src/github.com/yuya-takeyama/cchh",
-            "data": {
-                "session_id": "5554b911-618f-476b-abee-384e610a82d7",
-                "transcript_path": "/Users/yuya/.claude/projects/-Users-yuya-src-github-com-yuya-takeyama-cchh/5554b911-618f-476b-abee-384e610a82d7.jsonl",
-                "cwd": "/Users/yuya/src/github.com/yuya-takeyama/cchh",
-                "hook_event_name": "Notification",
-                "message": "Claude needs your permission to use Fetch",
-            },
+            "hook_event_name": "Notification",
+            "message": "Claude needs your permission to use Fetch",
         }
 
         event_json = json.dumps(event_data)
@@ -37,17 +31,15 @@ class TestLoadHookEvent:
         assert event.cwd == "/Users/yuya/src/github.com/yuya-takeyama/cchh"
         assert event.notification == "Claude needs your permission to use Fetch"
 
-    def test_load_nested_tool_event(self):
-        """Test loading nested tool event (other event types)"""
+    def test_load_flat_tool_event(self):
+        """Test loading flat tool event (PreToolUse)"""
         event_data = {
-            "hook_type": "PreToolUse",
             "session_id": "test-session",
+            "transcript_path": "/test/transcript.jsonl",
             "cwd": "/test",
-            "data": {
-                "hook_event_name": "PreToolUse",
-                "tool_name": "Bash",
-                "tool_input": {"command": "echo test"},
-            },
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo test"},
         }
 
         event_json = json.dumps(event_data)
@@ -82,10 +74,8 @@ class TestLoadHookEvent:
     def test_defaults_applied(self):
         """Test that defaults are applied for missing fields"""
         event_data = {
-            "data": {
-                "hook_event_name": "Notification"
-                # session_id and cwd are missing
-            }
+            "hook_event_name": "Notification"
+            # session_id and cwd are missing
         }
 
         event_json = json.dumps(event_data)
@@ -99,43 +89,50 @@ class TestLoadHookEvent:
 class TestNormalizeHookEventData:
     """Test cases for _normalize_hook_event_data function"""
 
-    def test_nested_data_flattened(self):
-        """Test that nested data structure is flattened"""
+    def test_flat_data_preserved(self):
+        """Test that flat data structure is preserved"""
         data = {
-            "hook_type": "Notification",
-            "session_id": "outer-session",
-            "data": {
-                "hook_event_name": "Notification",
-                "session_id": "inner-session",
-                "message": "Test notification",
-            },
+            "hook_event_name": "Notification",
+            "session_id": "test-session",
+            "transcript_path": "/test/transcript.jsonl",
+            "cwd": "/test",
+            "message": "Test notification",
         }
 
         result = _normalize_hook_event_data(data)
 
-        # Should contain flattened data
+        # Should preserve all fields
         assert result["hook_event_name"] == "Notification"
-        assert result["session_id"] == "inner-session"  # Inner takes precedence
+        assert result["session_id"] == "test-session"
+        assert result["transcript_path"] == "/test/transcript.jsonl"
+        assert result["cwd"] == "/test"
         assert result["notification"] == "Test notification"
-        assert result["hook_type"] == "Notification"  # Top-level preserved
+        assert result["message"] == "Test notification"  # Original field preserved
 
     def test_notification_message_mapping(self):
         """Test that message field is mapped to notification for Notification events"""
         data = {
-            "data": {
-                "hook_event_name": "Notification",
-                "message": "Permission required",
-            }
+            "hook_event_name": "Notification",
+            "session_id": "test-session",
+            "transcript_path": "/test/transcript.jsonl",
+            "cwd": "/test",
+            "message": "Permission required",
         }
 
         result = _normalize_hook_event_data(data)
 
         assert result["notification"] == "Permission required"
-        assert "message" in result  # Original message should still be there
+        assert result["message"] == "Permission required"  # Original message preserved
 
     def test_non_notification_no_mapping(self):
         """Test that message field is not mapped for non-Notification events"""
-        data = {"data": {"hook_event_name": "PreToolUse", "message": "Some message"}}
+        data = {
+            "hook_event_name": "PreToolUse",
+            "session_id": "test-session",
+            "transcript_path": "/test/transcript.jsonl",
+            "cwd": "/test",
+            "message": "Some message",
+        }
 
         result = _normalize_hook_event_data(data)
 
@@ -145,11 +142,12 @@ class TestNormalizeHookEventData:
     def test_notification_not_overridden_if_exists(self):
         """Test edge case where notification field already exists (shouldn't happen in real Claude Code)"""
         data = {
-            "data": {
-                "hook_event_name": "Notification",
-                "message": "Message field",
-                "notification": "Existing notification field",
-            }
+            "hook_event_name": "Notification",
+            "session_id": "test-session",
+            "transcript_path": "/test/transcript.jsonl",
+            "cwd": "/test",
+            "message": "Message field",
+            "notification": "Existing notification field",
         }
 
         result = _normalize_hook_event_data(data)
@@ -160,12 +158,11 @@ class TestNormalizeHookEventData:
     def test_notification_field_from_message(self):
         """Test that message field is converted to notification field"""
         event_data = {
-            "data": {
-                "hook_event_name": "Notification",
-                "session_id": "test-session",
-                "cwd": "/test",
-                "message": "Claude needs your permission to use Bash",
-            }
+            "hook_event_name": "Notification",
+            "session_id": "test-session",
+            "transcript_path": "/test/transcript.jsonl",
+            "cwd": "/test",
+            "message": "Claude needs your permission to use Bash",
         }
 
         stream = io.StringIO(json.dumps(event_data))

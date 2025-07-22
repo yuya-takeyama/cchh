@@ -138,7 +138,9 @@ class TestEventLogger:
         assert len(lines) == 3
 
         # Verify event types
-        logged_types = [json.loads(line)["raw_input"]["hook_event_name"] for line in lines]
+        logged_types = [
+            json.loads(line)["raw_input"]["hook_event_name"] for line in lines
+        ]
         assert "UserPromptSubmit" in logged_types
         assert "Stop" in logged_types
         assert "Notification" in logged_types

@@ -51,13 +51,11 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
 
 
 def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
-    """Normalize Claude Code event data structure
+    """Normalize Claude Code event data
 
-    Claude Code can send events in two formats:
-    1. Flat format: {"hook_event_name": "...", "session_id": "...", ...}
-    2. Nested format: {"data": {"hook_event_name": "...", ...}}
+    Claude Code sends events in flat format: {"hook_event_name": "...", "session_id": "...", ...}
 
-    This function normalizes both formats and maps the 'message' field
+    This function normalizes the data and maps the 'message' field
     to 'notification' for Notification events.
 
     Args:
@@ -66,20 +64,11 @@ def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Normalized event data
     """
-    # Check if this is a nested format (has 'data' field)
-    if "data" in raw_data and isinstance(raw_data["data"], dict):
-        # Nested format - flatten it
-        data = raw_data["data"].copy()
-
-        # Copy top-level fields that aren't in nested data
-        for key, value in raw_data.items():
-            if key != "data" and key not in data:
-                data[key] = value
-    else:
-        # Flat format - use as is
-        data = raw_data.copy()
+    # Copy the data
+    data = raw_data.copy()
 
     # Special handling for Notification events
+    # Claude Code sends 'message' but CCH expects 'notification'
     if (
         data.get("hook_event_name") == "Notification"
         and "message" in data

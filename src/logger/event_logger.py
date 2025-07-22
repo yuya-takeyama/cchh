@@ -39,7 +39,7 @@ class EventLogger(BaseHandler):
         # Create log entry with time and raw_input
         log_entry = {
             "time": datetime.now().isoformat() + "Z",
-            "raw_input": event.to_dict()
+            "raw_input": event.to_dict(),
         }
 
         try:
