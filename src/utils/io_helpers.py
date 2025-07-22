@@ -24,9 +24,12 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
         stream = sys.stdin
 
     try:
-        data = json.loads(stream.read())
+        raw_data = json.loads(stream.read())
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(f"Invalid JSON input: {e.msg}", e.doc, e.pos) from e
+
+    # Handle nested Claude Code event structure
+    data = _normalize_hook_event_data(raw_data)
 
     # Validate required fields
     if "hook_event_name" not in data:
@@ -41,6 +44,45 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
         data["cwd"] = os.getcwd()
 
     return HookEvent.from_dict(data)
+
+
+def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
+    """Normalize Claude Code event data structure
+    
+    Handles both the actual nested format from Claude Code and the flat format
+    expected by tests and internal code.
+    
+    Args:
+        raw_data: Raw event data from Claude Code
+        
+    Returns:
+        Normalized flat event data
+    """
+    # If already in flat format (tests, legacy), return as-is
+    if "hook_event_name" in raw_data and "data" not in raw_data:
+        return raw_data.copy()
+    
+    # Handle nested Claude Code format
+    if "data" in raw_data:
+        # Start with the nested data
+        data = raw_data["data"].copy()
+        
+        # Copy top-level fields that aren't in nested data
+        for key, value in raw_data.items():
+            if key != "data" and key not in data:
+                data[key] = value
+        
+        # Special handling for Notification events
+        if (data.get("hook_event_name") == "Notification" and 
+            "message" in data and 
+            "notification" not in data):
+            # Map data.message to notification field
+            data["notification"] = data["message"]
+            
+        return data
+    
+    # Fallback: return original data
+    return raw_data.copy()
 
 
 def write_hook_event(event: HookEvent, stream: TextIO | None = None) -> None:
