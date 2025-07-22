@@ -12,23 +12,6 @@ from src.utils.io_helpers import _normalize_hook_event_data, load_hook_event
 class TestLoadHookEvent:
     """Test cases for load_hook_event function"""
 
-    def test_load_flat_notification_event(self):
-        """Test loading flat notification event (backward compatibility)"""
-        event_data = {
-            "hook_event_name": "Notification",
-            "session_id": "test-session-123",
-            "cwd": "/test/directory",
-            "notification": "Claude needs your permission to use Bash",
-        }
-
-        event_json = json.dumps(event_data)
-        event = load_hook_event(io.StringIO(event_json))
-
-        assert event.hook_event_name == HookEventName.NOTIFICATION
-        assert event.session_id == "test-session-123"
-        assert event.cwd == "/test/directory"
-        assert event.notification == "Claude needs your permission to use Bash"
-
     def test_load_nested_notification_event(self):
         """Test loading nested notification event (real Claude Code format)"""
         # Real Claude Code event structure from issue #14
@@ -79,7 +62,13 @@ class TestLoadHookEvent:
 
     def test_missing_hook_event_name(self):
         """Test error handling for missing hook_event_name"""
-        event_data = {"session_id": "test-session", "cwd": "/test"}
+        event_data = {
+            "data": {
+                "session_id": "test-session", 
+                "cwd": "/test"
+                # hook_event_name is missing
+            }
+        }
 
         event_json = json.dumps(event_data)
         with pytest.raises(ValueError, match="Missing required field: hook_event_name"):
@@ -92,7 +81,12 @@ class TestLoadHookEvent:
 
     def test_defaults_applied(self):
         """Test that defaults are applied for missing fields"""
-        event_data = {"hook_event_name": "Notification"}
+        event_data = {
+            "data": {
+                "hook_event_name": "Notification"
+                # session_id and cwd are missing
+            }
+        }
 
         event_json = json.dumps(event_data)
         event = load_hook_event(io.StringIO(event_json))
@@ -104,19 +98,6 @@ class TestLoadHookEvent:
 
 class TestNormalizeHookEventData:
     """Test cases for _normalize_hook_event_data function"""
-
-    def test_flat_data_unchanged(self):
-        """Test that flat data structure is unchanged"""
-        data = {
-            "hook_event_name": "Notification",
-            "session_id": "test-session",
-            "notification": "Test message",
-        }
-
-        result = _normalize_hook_event_data(data)
-
-        assert result == data
-        assert result is not data  # Should be a copy
 
     def test_nested_data_flattened(self):
         """Test that nested data structure is flattened"""
@@ -175,15 +156,6 @@ class TestNormalizeHookEventData:
 
         # Should preserve existing notification, not override with message
         assert result["notification"] == "Notification field"
-
-    def test_no_data_field_passthrough(self):
-        """Test that data without 'data' field passes through unchanged"""
-        data = {"hook_event_name": "Stop", "session_id": "test-session"}
-
-        result = _normalize_hook_event_data(data)
-
-        assert result == data
-        assert result is not data  # Should be a copy
 
     def test_non_dict_data_field(self):
         """Test handling of non-dict data field"""

@@ -27,7 +27,7 @@ class HookEvent:
     tool_input: dict[str, Any] | None = None
     result: dict[str, Any] | None = None
     prompt: str | None = None
-    notification: str | dict[str, Any] | None = None
+    notification: str | None = None
     output: str | None = None
     raw_data: dict[str, Any] | None = None
 

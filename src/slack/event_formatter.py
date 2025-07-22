@@ -182,22 +182,10 @@ class EventFormatter:
         return message, NotificationLevel.CHANNEL
 
     def format_notification(
-        self, notification: dict[str, Any] | str
+        self, notification: str
     ) -> tuple[str, NotificationLevel]:
         """Format notification message"""
-        # Handle both string and dict notification formats
-        if isinstance(notification, str):
-            text = notification
-        else:
-            # Handle structured permission request format
-            if notification.get("type") == "toolUseRequiresApproval":
-                tool_name = notification.get("tool", "Unknown")
-                message = SLACK_MESSAGES["notification_permission"].format(
-                    tool_name=tool_name
-                )
-                return message, NotificationLevel.CHANNEL
-
-            text = notification.get("text", "")
+        text = notification
 
         # 重要な通知の判定
         is_important = any(

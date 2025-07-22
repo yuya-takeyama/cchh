@@ -53,30 +53,15 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
 def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
     """Normalize Claude Code event data structure
 
-    Handles both the actual nested format from Claude Code and the flat format
-    expected by tests and internal code.
+    Handles the nested format from Claude Code where the actual event data
+    is nested inside a 'data' field.
 
     Args:
         raw_data: Raw event data from Claude Code
 
     Returns:
-        Normalized flat event data
+        Normalized event data
     """
-    # If already in flat format (tests, legacy), handle message->notification mapping
-    if "hook_event_name" in raw_data and "data" not in raw_data:
-        data = raw_data.copy()
-
-        # Special handling for Notification events in flat format
-        if (
-            data.get("hook_event_name") == "Notification"
-            and "message" in data
-            and "notification" not in data
-        ):
-            # Map message to notification field
-            data["notification"] = data["message"]
-
-        return data
-
     # Handle nested Claude Code format
     if "data" in raw_data:
         # Validate that data field is a dictionary
@@ -102,7 +87,7 @@ def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
 
         return data
 
-    # Fallback: return original data
+    # No data field - return as is
     return raw_data.copy()
 
 
