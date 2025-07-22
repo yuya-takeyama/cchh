@@ -276,6 +276,12 @@ Custom Permission Prompt Tool を使用したリモート承認機能が実際�
    - OAuth 2.0認証のサポート
    - 環境変数の展開機能
 
+3. **FastMCP API の発見** (2025-07-22)
+   - `mcp.server.FastMCP` - デコレーターベースの高レベルAPI
+   - ツール、リソース、プロンプトの簡単な登録
+   - Context オブジェクトによるログ出力と進捗報告
+   - 3つのトランスポート: stdio, sse, streamable-http
+
 ### 実装計画
 
 #### 準備作業（1時間）
@@ -344,3 +350,95 @@ Custom Permission Prompt Tool を使用したリモート承認機能が実際�
 3. **ネットワークセキュリティ**
    - ローカルネットワーク内での初期テスト
    - 段階的なセキュリティ強化
+
+### Phase 2 実装進捗 (2025-07-22)
+
+#### 完了した作業
+1. **MCPの依存関係追加**
+   - cchh本体の pyproject.toml に MCP SDK を追加
+   - mcp-server 専用の環境構築は不要と判断（cchh と統合）
+   - `uv sync` で正常にインストール完了
+
+2. **SDK調査完了**
+   - FastMCP API の存在を確認
+   - デコレーターベースの簡潔な実装方法を発見
+   - サンプルコードと実装パターンを理解
+
+#### 技術的な発見
+- FastMCP は Flask/FastAPI ライクな API 設計
+- Context オブジェクトでログ出力、進捗報告、リソース読み込みが可能
+- stdio/sse/streamable-http の3つのトランスポートをサポート
+
+#### 次のステップ
+1. FastMCP を使用した MCP サーバーの実装
+2. Permission Prompt の処理実装（具体的な仕様は実験的に確認）
+3. デバッグログ機能の組み込み
+
+### Phase 2 実装完了 (2025-07-22)
+
+#### 実装内容
+1. **FastMCP によるMCPサーバー実装**
+   - `mcp_server_sdk.py` - FastMCP を使用した承認サーバー
+   - 3つのツール実装：request_approval, list_pending_approvals, approve_request
+   - Context によるログ出力と進捗報告機能
+   - デバッグログ機能（`~/.cchh/mcp_logs/` に出力）
+
+2. **テストツールの作成**
+   - `test_mcp_sdk.py` - JSON-RPC プロトコルでの通信テスト
+   - 初期化、ツールリスト、ツール呼び出しの動作確認
+
+3. **Claude Code への統合**
+   - ラッパースクリプト `run_mcp_server.sh` の作成
+   - `claude mcp add` コマンドでの登録完了
+   - 登録名: `cchh-remote-approval`
+
+#### 技術的な確認事項
+- MCPサーバーが正常に起動し、JSON-RPC通信が可能
+- FastMCP のツール定義が正しく動作
+- 承認リクエストの作成と自動承認が機能
+
+#### 次のステップ
+1. Claude Code を再起動して MCP サーバーの認識確認
+2. Permission Prompt の実際の発行条件を確認
+3. リモート承認機能の実装（HTTP/WebSocket）
+
+### Permission Prompt Tool 実装完了 (2025-07-22)
+
+#### 実装内容
+1. **approval_prompt ツールの追加**
+   - Claude Code SDK ドキュメントに準拠した実装
+   - tool_name, input, tool_use_id を受け取る
+   - JSON文字列化された allow/deny レスポンスを返す
+   - デモ用ロジック：inputに "allow" が含まれていれば承認
+
+2. **発見事項**
+   - --permission-prompt-tool オプションは --help に表示されない
+   - SDK ドキュメントにのみ記載されている可能性
+   - MCPサーバーは4つのツールを持つ状態に
+
+#### 未解決の課題
+- --permission-prompt-tool オプションの指定方法が不明
+- Claude Code が自動的に approval_prompt を認識するかは未確認
+- 実際の Permission Prompt 発行条件が不明
+
+### Permission Prompt Tool 動作確認完了！(2025-07-22)
+
+#### 動作確認結果
+1. **approval_prompt が正常に動作**
+   - 許可されていないコマンド（rm, tail）で "Permission denied by cchh-remote-approval" 
+   - Read ツールも同様に拒否される
+   - ファイル名に "allow" を含む場合は承認される
+
+2. **確認できた挙動**
+   - --permission-prompt-tool オプションで MCP サーバーが認識される
+   - 許可リストにないツール/コマンドで approval_prompt が呼ばれる
+   - approval_prompt の返り値によって承認/拒否が決定
+
+3. **技術的発見**
+   - Permission Prompt は通常のMCPツールとして実装可能
+   - input パラメータにツールの引数が含まれる
+   - JSON文字列で allow/deny レスポンスを返す仕組み
+
+#### 次のステップ
+- HTTP/WebSocket でリモート承認を実装
+- Slack や Web UI から承認/拒否できる仕組みの構築

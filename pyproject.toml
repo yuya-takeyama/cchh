@@ -3,7 +3,14 @@ name = "cchh"
 version = "0.1.0"
 description = "Hook handler for Claude CLI"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "mcp",
+    "fastapi",
+    "uvicorn[standard]",
+    "websockets",
+    "pydantic",
+    "python-dotenv",
+]
 
 [project.optional-dependencies]
 dev = [

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "cchh-remote-approval": {
+      "command": "uv",
+      "args": ["run", "python", "mcp-server/mcp_server_sdk.py"],
+      "transport": "stdio",
+      "description": "Remote approval MCP server using FastMCP SDK",
+      "cwd": "/Users/yuya/src/github.com/yuya-takeyama/cchh"
+    }
+  },
+  "_comment": "Add this mcpServers section to your ~/.claude/settings.json file or use 'claude mcp add' command"
+}
