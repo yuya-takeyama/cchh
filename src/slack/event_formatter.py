@@ -196,7 +196,7 @@ class EventFormatter:
                     tool_name=tool_name
                 )
                 return message, NotificationLevel.CHANNEL
-            
+
             text = notification.get("text", "")
 
         # 重要な通知の判定

@@ -69,7 +69,7 @@ class HookEvent:
                 # Clone the raw data to avoid modifying the original
                 result = self.raw_data.copy()
                 result["data"] = self.raw_data["data"].copy()
-                
+
                 # Add notification field to nested data if it's a Notification event
                 if (
                     result["data"].get("hook_event_name") == "Notification"
@@ -77,7 +77,7 @@ class HookEvent:
                     and "notification" not in result["data"]
                 ):
                     result["data"]["notification"] = self.notification
-                
+
                 return result
             else:
                 # Flat structure - return raw_data as is
