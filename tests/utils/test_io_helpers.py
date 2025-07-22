@@ -1,11 +1,12 @@
 """Tests for I/O helper functions"""
 
-import json
 import io
+import json
+
 import pytest
 
-from src.utils.io_helpers import load_hook_event, _normalize_hook_event_data
-from src.core.types import HookEvent, HookEventName
+from src.core.types import HookEventName
+from src.utils.io_helpers import _normalize_hook_event_data, load_hook_event
 
 
 class TestLoadHookEvent:
@@ -19,10 +20,10 @@ class TestLoadHookEvent:
             "cwd": "/test/directory",
             "notification": "Claude needs your permission to use Bash",
         }
-        
+
         event_json = json.dumps(event_data)
         event = load_hook_event(io.StringIO(event_json))
-        
+
         assert event.hook_event_name == HookEventName.NOTIFICATION
         assert event.session_id == "test-session-123"
         assert event.cwd == "/test/directory"
@@ -41,13 +42,13 @@ class TestLoadHookEvent:
                 "transcript_path": "/Users/yuya/.claude/projects/-Users-yuya-src-github-com-yuya-takeyama-cchh/5554b911-618f-476b-abee-384e610a82d7.jsonl",
                 "cwd": "/Users/yuya/src/github.com/yuya-takeyama/cchh",
                 "hook_event_name": "Notification",
-                "message": "Claude needs your permission to use Fetch"
-            }
+                "message": "Claude needs your permission to use Fetch",
+            },
         }
-        
+
         event_json = json.dumps(event_data)
         event = load_hook_event(io.StringIO(event_json))
-        
+
         assert event.hook_event_name == HookEventName.NOTIFICATION
         assert event.session_id == "5554b911-618f-476b-abee-384e610a82d7"
         assert event.cwd == "/Users/yuya/src/github.com/yuya-takeyama/cchh"
@@ -61,14 +62,14 @@ class TestLoadHookEvent:
             "cwd": "/test",
             "data": {
                 "hook_event_name": "PreToolUse",
-                "tool_name": "Bash", 
-                "tool_input": {"command": "echo test"}
-            }
+                "tool_name": "Bash",
+                "tool_input": {"command": "echo test"},
+            },
         }
-        
+
         event_json = json.dumps(event_data)
         event = load_hook_event(io.StringIO(event_json))
-        
+
         assert event.hook_event_name == HookEventName.PRE_TOOL_USE
         assert event.session_id == "test-session"
         assert event.cwd == "/test"
@@ -78,11 +79,8 @@ class TestLoadHookEvent:
 
     def test_missing_hook_event_name(self):
         """Test error handling for missing hook_event_name"""
-        event_data = {
-            "session_id": "test-session",
-            "cwd": "/test"
-        }
-        
+        event_data = {"session_id": "test-session", "cwd": "/test"}
+
         event_json = json.dumps(event_data)
         with pytest.raises(ValueError, match="Missing required field: hook_event_name"):
             load_hook_event(io.StringIO(event_json))
@@ -94,13 +92,11 @@ class TestLoadHookEvent:
 
     def test_defaults_applied(self):
         """Test that defaults are applied for missing fields"""
-        event_data = {
-            "hook_event_name": "Notification"
-        }
-        
+        event_data = {"hook_event_name": "Notification"}
+
         event_json = json.dumps(event_data)
         event = load_hook_event(io.StringIO(event_json))
-        
+
         assert event.hook_event_name == HookEventName.NOTIFICATION
         assert event.session_id == "unknown"
         assert event.cwd is not None  # Should be set to current directory
@@ -114,11 +110,11 @@ class TestNormalizeHookEventData:
         data = {
             "hook_event_name": "Notification",
             "session_id": "test-session",
-            "notification": "Test message"
+            "notification": "Test message",
         }
-        
+
         result = _normalize_hook_event_data(data)
-        
+
         assert result == data
         assert result is not data  # Should be a copy
 
@@ -130,12 +126,12 @@ class TestNormalizeHookEventData:
             "data": {
                 "hook_event_name": "Notification",
                 "session_id": "inner-session",
-                "message": "Test notification"
-            }
+                "message": "Test notification",
+            },
         }
-        
+
         result = _normalize_hook_event_data(data)
-        
+
         # Should contain flattened data
         assert result["hook_event_name"] == "Notification"
         assert result["session_id"] == "inner-session"  # Inner takes precedence
@@ -147,26 +143,21 @@ class TestNormalizeHookEventData:
         data = {
             "data": {
                 "hook_event_name": "Notification",
-                "message": "Permission required"
+                "message": "Permission required",
             }
         }
-        
+
         result = _normalize_hook_event_data(data)
-        
+
         assert result["notification"] == "Permission required"
         assert "message" in result  # Original message should still be there
 
     def test_non_notification_no_mapping(self):
         """Test that message field is not mapped for non-Notification events"""
-        data = {
-            "data": {
-                "hook_event_name": "PreToolUse",
-                "message": "Some message"
-            }
-        }
-        
+        data = {"data": {"hook_event_name": "PreToolUse", "message": "Some message"}}
+
         result = _normalize_hook_event_data(data)
-        
+
         assert "notification" not in result
         assert result["message"] == "Some message"
 
@@ -176,23 +167,20 @@ class TestNormalizeHookEventData:
             "data": {
                 "hook_event_name": "Notification",
                 "message": "Message field",
-                "notification": "Notification field"
+                "notification": "Notification field",
             }
         }
-        
+
         result = _normalize_hook_event_data(data)
-        
+
         # Should preserve existing notification, not override with message
         assert result["notification"] == "Notification field"
 
     def test_no_data_field_passthrough(self):
         """Test that data without 'data' field passes through unchanged"""
-        data = {
-            "hook_event_name": "Stop",
-            "session_id": "test-session"
-        }
-        
+        data = {"hook_event_name": "Stop", "session_id": "test-session"}
+
         result = _normalize_hook_event_data(data)
-        
+
         assert result == data
         assert result is not data  # Should be a copy
