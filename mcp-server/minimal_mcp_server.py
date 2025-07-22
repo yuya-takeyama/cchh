@@ -40,13 +40,24 @@ class MinimalMCPServer:
         try:
             line = sys.stdin.readline()
             if not line:
+                logging.debug("No input received (EOF)")
                 return None
+            
+            # 受信した生データをログ
+            logging.debug(f"Raw input: {repr(line)}")
+            
+            # 空行や空白のみの場合はスキップ
+            stripped = line.strip()
+            if not stripped:
+                logging.debug("Empty line received, continuing...")
+                return self.read_message()  # 再帰的に次の行を読む
 
-            message = json.loads(line.strip())
-            logging.debug(f"Received message: {message}")
+            message = json.loads(stripped)
+            logging.debug(f"Parsed message: {message}")
             return message
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse JSON: {e}")
+            logging.error(f"Raw data was: {repr(line)}")
             return None
         except Exception as e:
             logging.error(f"Error reading message: {e}")
