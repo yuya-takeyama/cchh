@@ -12,10 +12,15 @@ from typing import Any
 
 # ログ設定
 log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_server.log")
+
+# ファイルとコンソール両方にログを出力
+file_handler = logging.FileHandler(log_path)
+console_handler = logging.StreamHandler(sys.stderr)
+
 logging.basicConfig(
-    filename=log_path,
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[file_handler, console_handler]
 )
 
 
