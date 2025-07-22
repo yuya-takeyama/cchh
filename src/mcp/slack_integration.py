@@ -22,12 +22,11 @@ def log_debug(message: str):
 
 
 class SlackIntegration:
-    """Send approval requests and results to Slack threads."""
+    """Send approval requests and results to Slack channel."""
 
     def __init__(self):
         self.bot_token = os.environ.get("CCHH_SLACK_BOT_TOKEN")
         self.channel_id = os.environ.get("CCHH_SLACK_CHANNEL_ID")
-        self.thread_dir = Path.home() / ".cchh" / "slack_threads"
         self.base_url = "http://localhost:8080"
 
     @property
@@ -35,40 +34,21 @@ class SlackIntegration:
         """Check if Slack is properly configured."""
         return self.bot_token is not None and self.channel_id is not None
 
-    def get_thread_ts(self, session_id: str) -> Optional[str]:
-        """Get Slack thread timestamp for session."""
-        thread_file = self.thread_dir / f"{session_id}.json"
-        if thread_file.exists():
-            try:
-                data = json.loads(thread_file.read_text())
-                return data.get("thread_ts")
-            except Exception:
-                return None
-        return None
-
     def send_approval_request(
         self,
-        session_id: str,
+        session_id: str,  # Kept for compatibility but not used
         request_id: str,
         tool_name: str,
         input_data: dict,
     ) -> bool:
-        """Send approval request to Slack thread."""
+        """Send approval request to Slack channel."""
         log_debug(f"send_approval_request called")
-        log_debug(f"session_id: {session_id}")
+        log_debug(f"request_id: {request_id}")
+        log_debug(f"tool_name: {tool_name}")
         log_debug(f"is_configured: {self.is_configured}")
         
         if not self.is_configured:
             log_debug(f"Not configured - bot_token: {bool(self.bot_token)}, channel_id: {bool(self.channel_id)}")
-            return False
-
-        thread_ts = self.get_thread_ts(session_id)
-        log_debug(f"thread_ts: {thread_ts}")
-        log_debug(f"thread_file: {self.thread_dir / f'{session_id}.json'}")
-        
-        if not thread_ts:
-            # No thread found for this session
-            log_debug(f"No thread found for session {session_id}")
             return False
 
         # Build curl commands
@@ -99,20 +79,16 @@ class SlackIntegration:
             f"却下:\n```{deny_cmd}```"
         )
 
-        return self._send_message(message, thread_ts)
+        return self._send_message(message)
 
     def send_approval_result(
         self,
-        session_id: str,
+        session_id: str,  # Kept for compatibility but not used
         request_id: str,
         result: str,  # "approved" or "denied"
     ) -> bool:
-        """Send approval result to Slack thread."""
+        """Send approval result to Slack channel."""
         if not self.is_configured:
-            return False
-
-        thread_ts = self.get_thread_ts(session_id)
-        if not thread_ts:
             return False
 
         emoji = "✅" if result == "approved" else "❌"
@@ -120,10 +96,10 @@ class SlackIntegration:
 
         message = f"{emoji} リクエスト `{request_id}` が{status}"
 
-        return self._send_message(message, thread_ts)
+        return self._send_message(message)
 
-    def _send_message(self, text: str, thread_ts: str) -> bool:
-        """Send message to Slack thread."""
+    def _send_message(self, text: str) -> bool:
+        """Send message to Slack channel."""
         try:
             response = requests.post(
                 "https://slack.com/api/chat.postMessage",
@@ -134,7 +110,6 @@ class SlackIntegration:
                 json={
                     "channel": self.channel_id,
                     "text": text,
-                    "thread_ts": thread_ts,
                     "mrkdwn": True,
                 },
             )
