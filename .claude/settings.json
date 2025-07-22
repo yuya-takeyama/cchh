@@ -11,5 +11,13 @@
         ]
       }
     ]
+  },
+  "mcpServers": {
+    "minimal-permission": {
+      "command": "uv",
+      "args": ["run", "python", "mcp-server/minimal_mcp_server.py"],
+      "transport": "stdio",
+      "description": "Minimal MCP server for permission testing"
+    }
   }
 }
