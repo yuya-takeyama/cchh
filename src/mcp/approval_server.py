@@ -6,6 +6,8 @@ from typing import Any, Dict, Optional
 
 from aiohttp import web
 
+from .slack_integration import SlackIntegration
+
 
 class ApprovalServer:
     """HTTP server for remote approval."""
@@ -21,17 +23,20 @@ class ApprovalServer:
         self.timeout_seconds = timeout_seconds
         self.pending_approvals: Dict[str, asyncio.Future] = {}
         self.approval_details: Dict[str, dict] = {}
+        self.session_mapping: Dict[str, str] = {}  # request_id -> session_id
         self.app: Optional[web.Application] = None
         self.runner: Optional[web.AppRunner] = None
+        self.slack = SlackIntegration()
 
     async def create_approval_request(
-        self, request_id: str, details: dict
+        self, request_id: str, details: dict, session_id: str = ""
     ) -> dict[str, Any]:
         """Create approval request and wait for response.
 
         Args:
             request_id: Unique request ID
             details: Request details (tool_name, input, etc.)
+            session_id: Claude session ID
 
         Returns:
             Dict with behavior: "allow" or "deny"
@@ -40,6 +45,8 @@ class ApprovalServer:
         future = asyncio.Future()
         self.pending_approvals[request_id] = future
         self.approval_details[request_id] = details
+        if session_id:
+            self.session_mapping[request_id] = session_id
 
         # Set up timeout
         asyncio.create_task(self._timeout_handler(request_id))
@@ -52,6 +59,7 @@ class ApprovalServer:
             # Clean up
             self.pending_approvals.pop(request_id, None)
             self.approval_details.pop(request_id, None)
+            self.session_mapping.pop(request_id, None)
 
     async def _timeout_handler(self, request_id: str):
         """Handle timeout for approval request."""
@@ -61,6 +69,18 @@ class ApprovalServer:
             if not future.done():
                 # Timeout - auto deny
                 future.set_result({"behavior": "deny", "message": "Request timed out after 5 minutes"})
+                
+                # Send Slack notification for timeout
+                session_id = self.session_mapping.get(request_id)
+                if session_id and self.slack.is_configured:
+                    asyncio.create_task(
+                        asyncio.to_thread(
+                            self.slack.send_approval_result,
+                            session_id,
+                            request_id,
+                            "denied (timeout)",
+                        )
+                    )
 
     async def handle_pending(self, request: web.Request) -> web.Response:
         """Handle GET /pending - list pending approval requests."""
@@ -99,6 +119,18 @@ class ApprovalServer:
                 input_data = details.get("input", {})
                 future.set_result({"behavior": "allow", "updatedInput": input_data})
 
+            # Send Slack notification
+            session_id = self.session_mapping.get(request_id)
+            if session_id and self.slack.is_configured:
+                asyncio.create_task(
+                    asyncio.to_thread(
+                        self.slack.send_approval_result,
+                        session_id,
+                        request_id,
+                        "approved",
+                    )
+                )
+
             return web.json_response({"status": "approved"})
 
         except Exception as e:
@@ -123,6 +155,18 @@ class ApprovalServer:
             future = self.pending_approvals[request_id]
             if not future.done():
                 future.set_result({"behavior": "deny", "message": "Request denied by user"})
+
+            # Send Slack notification
+            session_id = self.session_mapping.get(request_id)
+            if session_id and self.slack.is_configured:
+                asyncio.create_task(
+                    asyncio.to_thread(
+                        self.slack.send_approval_result,
+                        session_id,
+                        request_id,
+                        "denied",
+                    )
+                )
 
             return web.json_response({"status": "denied"})
 
