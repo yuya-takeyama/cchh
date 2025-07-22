@@ -6,12 +6,14 @@
 
 import json
 import logging
+import os
 import sys
 from typing import Any
 
 # ログ設定
+log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_server.log")
 logging.basicConfig(
-    filename="mcp_server.log",
+    filename=log_path,
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )

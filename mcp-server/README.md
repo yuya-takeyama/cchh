@@ -14,7 +14,26 @@ Claude Code のリモート承認機能を実現するための MCP (Model Conte
 
 ### セットアップ方法
 
-1. Claude Code の設定ファイル（`~/.claude/settings.json`）に以下を追加：
+#### 方法1: CLIコマンドを使用（推奨）
+
+1. プロジェクトディレクトリで以下を実行：
+```bash
+./mcp-server/setup.sh
+```
+
+または手動で：
+```bash
+claude mcp add minimal-permission "uv run python $(pwd)/mcp-server/minimal_mcp_server.py"
+```
+
+2. 登録確認：
+```bash
+claude mcp list
+```
+
+#### 方法2: 設定ファイルを直接編集
+
+`.claude/settings.json` に以下を追加：
 
 ```json
 {
@@ -28,8 +47,6 @@ Claude Code のリモート承認機能を実現するための MCP (Model Conte
   }
 }
 ```
-
-2. Claude Code を再起動
 
 ### 動作確認
 
