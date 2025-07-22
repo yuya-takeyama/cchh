@@ -181,15 +181,9 @@ class EventFormatter:
         )
         return message, NotificationLevel.CHANNEL
 
-    def format_notification(
-        self, notification: dict[str, Any] | str
-    ) -> tuple[str, NotificationLevel]:
+    def format_notification(self, notification: str) -> tuple[str, NotificationLevel]:
         """Format notification message"""
-        # Handle both string and dict notification formats
-        if isinstance(notification, str):
-            text = notification
-        else:
-            text = notification.get("text", "")
+        text = notification
 
         # 重要な通知の判定
         is_important = any(

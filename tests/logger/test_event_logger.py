@@ -56,10 +56,10 @@ class TestEventLogger:
         with open(log_files[0]) as f:
             log_entry = json.loads(f.readline())
 
-        assert log_entry["hook_type"] == "PreToolUse"
-        assert log_entry["session_id"] == "test-session-123"
-        assert log_entry["data"]["tool_name"] == "Bash"
-        assert "timestamp" in log_entry
+        assert log_entry["raw_input"]["hook_event_name"] == "PreToolUse"
+        assert log_entry["raw_input"]["session_id"] == "test-session-123"
+        assert log_entry["raw_input"]["tool_name"] == "Bash"
+        assert "time" in log_entry
 
     def test_multiple_events_same_file(self, event_logger, sample_event, temp_log_dir):
         """Test multiple events are appended to same file"""
@@ -81,7 +81,7 @@ class TestEventLogger:
         # Check each line is valid JSON
         for i, line in enumerate(lines):
             entry = json.loads(line)
-            assert f"test{i}" in entry["data"]["tool_input"]["command"]
+            assert f"test{i}" in entry["raw_input"]["tool_input"]["command"]
 
     @pytest.mark.skip(reason="Log rotation test needs fixing")
     def test_log_rotation(self, event_logger, sample_event, temp_log_dir, monkeypatch):
@@ -138,7 +138,9 @@ class TestEventLogger:
         assert len(lines) == 3
 
         # Verify event types
-        logged_types = [json.loads(line)["hook_type"] for line in lines]
+        logged_types = [
+            json.loads(line)["raw_input"]["hook_event_name"] for line in lines
+        ]
         assert "UserPromptSubmit" in logged_types
         assert "Stop" in logged_types
         assert "Notification" in logged_types
@@ -160,7 +162,7 @@ class TestEventLogger:
             log_entry = json.loads(f.readline())
 
         # Check timestamp is ISO format
-        timestamp = log_entry["timestamp"]
+        timestamp = log_entry["time"]
         parsed_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
         assert isinstance(parsed_time, datetime)
 
@@ -186,12 +188,12 @@ class TestEventLogger:
             log_entry = json.loads(f.readline())
 
         # Check all fields are present
-        assert log_entry["hook_type"] == "PostToolUse"
-        assert log_entry["session_id"] == "test-session"
-        assert log_entry["cwd"] == "/test/dir"
-        assert log_entry["data"]["tool_name"] == "Edit"
-        assert log_entry["data"]["tool_input"]["file_path"] == "/test/file.py"
-        assert log_entry["data"]["result"]["success"] is True
+        assert log_entry["raw_input"]["hook_event_name"] == "PostToolUse"
+        assert log_entry["raw_input"]["session_id"] == "test-session"
+        assert log_entry["raw_input"]["cwd"] == "/test/dir"
+        assert log_entry["raw_input"]["tool_name"] == "Edit"
+        assert log_entry["raw_input"]["tool_input"]["file_path"] == "/test/file.py"
+        assert log_entry["raw_input"]["result"]["success"] is True
 
     def test_concurrent_logging(self, event_logger, sample_event, temp_log_dir):
         """Test that concurrent events are handled properly"""

@@ -130,11 +130,7 @@ class ZundaSpeaker(BaseHandler):
         if not event.notification:
             return
 
-        # Handle both string and dict notification formats
-        if isinstance(event.notification, str):
-            text = event.notification
-        else:
-            text = event.notification.get("text", "")
+        text = event.notification
 
         # メッセージ変換マップで処理
         voice_message = ZUNDAMON_MESSAGES.get(text)

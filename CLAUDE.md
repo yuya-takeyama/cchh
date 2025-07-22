@@ -344,3 +344,24 @@ Set `CCHH_TEST_ENVIRONMENT=1` to disable external notifications during developme
 - Async notifications to avoid blocking CLI
 - Efficient session state caching
 - Log rotation for high-volume usage
+
+## Claude Code Hook Event Format
+
+### Input Format
+Claude Code sends hook events in **flat JSON format** to stdin. The exact schema for each event type is defined in `src/core/types.py` using TypedDict.
+
+### Event Type Definitions
+- `BaseHookInput`: Common fields for all events (hook_event_name, session_id, transcript_path, cwd)
+- `PreToolUseInput`: Input for tool execution events
+- `PostToolUseInput`: Tool execution results
+- `NotificationInput`: Notification events (uses 'message' field)
+- `UserPromptSubmitInput`: User prompt submissions
+- `StopInput`: Session termination events
+- `PreCompactInput`: Context overflow warnings
+
+### Important Notes
+- Events are sent as **flat JSON**, not nested (no `{"data": {...}}` wrapper)
+- The `message` field in Notification events is internally mapped to `notification` for compatibility
+- Event logger outputs format: `{"time":"...", "raw_input":{...}}`
+- See `src/core/types.py` for complete TypedDict schemas and field descriptions
+- Reference: https://docs.anthropic.com/en/docs/claude-code/hooks#hook-input

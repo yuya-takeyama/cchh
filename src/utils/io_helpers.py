@@ -24,9 +24,12 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
         stream = sys.stdin
 
     try:
-        data = json.loads(stream.read())
+        raw_data = json.loads(stream.read())
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(f"Invalid JSON input: {e.msg}", e.doc, e.pos) from e
+
+    # Handle nested Claude Code event structure
+    data = _normalize_hook_event_data(raw_data)
 
     # Validate required fields
     if "hook_event_name" not in data:
@@ -40,7 +43,41 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
 
         data["cwd"] = os.getcwd()
 
-    return HookEvent.from_dict(data)
+    # Create HookEvent with normalized data but preserve original raw_data
+    event = HookEvent.from_dict(data)
+    # Override raw_data with the original nested structure
+    event.raw_data = raw_data
+    return event
+
+
+def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
+    """Normalize Claude Code event data
+
+    Claude Code sends events in flat format: {"hook_event_name": "...", "session_id": "...", ...}
+
+    This function normalizes the data and maps the 'message' field
+    to 'notification' for Notification events.
+
+    Args:
+        raw_data: Raw event data from Claude Code
+
+    Returns:
+        Normalized event data
+    """
+    # Copy the data
+    data = raw_data.copy()
+
+    # Special handling for Notification events
+    # Claude Code sends 'message' but CCH expects 'notification'
+    if (
+        data.get("hook_event_name") == "Notification"
+        and "message" in data
+        and "notification" not in data
+    ):
+        # Map message to notification field
+        data["notification"] = data["message"]
+
+    return data
 
 
 def write_hook_event(event: HookEvent, stream: TextIO | None = None) -> None:

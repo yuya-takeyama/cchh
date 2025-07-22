@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 
 class HookEventName(Enum):
@@ -16,6 +16,54 @@ class HookEventName(Enum):
     PRE_COMPACT = "PreCompact"
 
 
+# Claude Code Hook Input Schemas
+# These TypedDicts define the exact structure of events sent by Claude Code
+# Based on https://docs.anthropic.com/en/docs/claude-code/hooks#hook-input
+
+class BaseHookInput(TypedDict):
+    """Base fields present in all hook events"""
+    hook_event_name: str
+    session_id: str
+    transcript_path: str
+    cwd: str
+
+
+class PreToolUseInput(BaseHookInput):
+    """PreToolUse event input schema"""
+    tool_name: str
+    tool_input: dict[str, Any]
+
+
+class PostToolUseInput(BaseHookInput):
+    """PostToolUse event input schema"""
+    tool_name: str
+    tool_response: NotRequired[dict[str, Any]]  # May contain error
+
+
+class NotificationInput(BaseHookInput):
+    """Notification event input schema"""
+    message: str  # Note: Claude Code sends 'message', not 'notification'
+
+
+class StopInput(BaseHookInput):
+    """Stop event input schema"""
+    pass  # No additional fields
+
+
+class UserPromptSubmitInput(BaseHookInput):
+    """UserPromptSubmit event input schema"""
+    prompt: str
+
+
+class PreCompactInput(BaseHookInput):
+    """PreCompact event input schema"""
+    pass  # No additional fields documented
+
+
+# Union type for all possible hook inputs
+HookInput = PreToolUseInput | PostToolUseInput | NotificationInput | StopInput | UserPromptSubmitInput | PreCompactInput
+
+
 @dataclass
 class HookEvent:
     """Represents a Claude Code hook event"""
@@ -25,9 +73,10 @@ class HookEvent:
     cwd: str
     tool_name: str | None = None
     tool_input: dict[str, Any] | None = None
+    tool_response: dict[str, Any] | None = None
     result: dict[str, Any] | None = None
     prompt: str | None = None
-    notification: dict[str, Any] | None = None
+    notification: str | None = None
     output: str | None = None
     raw_data: dict[str, Any] | None = None
 
@@ -52,6 +101,7 @@ class HookEvent:
             cwd=data.get("cwd", ""),
             tool_name=data.get("tool_name"),
             tool_input=data.get("tool_input"),
+            tool_response=data.get("tool_response"),
             result=data.get("result"),
             prompt=data.get("prompt"),
             notification=data.get("notification"),
@@ -60,32 +110,60 @@ class HookEvent:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON output"""
-        if self.raw_data:
-            return self.raw_data
+        """Convert to dictionary for JSON output
 
-        # Convert enum to string if necessary
+        Claude Code expects a flat format for hook responses, not nested.
+        We need to return the flattened data, not the raw nested structure.
+        """
+        # Build flat structure from fields
+        # Handle both string and enum for hook_event_name
         event_name = self.hook_event_name
         if isinstance(event_name, HookEventName):
             event_name = event_name.value
 
-        data: dict[str, Any] = {
+        result: dict[str, Any] = {
             "hook_event_name": event_name,
             "session_id": self.session_id,
             "cwd": self.cwd,
         }
 
-        if self.tool_name is not None:
-            data["tool_name"] = self.tool_name
-        if self.tool_input is not None:
-            data["tool_input"] = self.tool_input
-        if self.result is not None:
-            data["result"] = self.result
-        if self.prompt is not None:
-            data["prompt"] = self.prompt
-        if self.notification is not None:
-            data["notification"] = self.notification
-        if self.output is not None:
-            data["output"] = self.output
+        # Add optional fields if present
+        if self.tool_name:
+            result["tool_name"] = self.tool_name
+        if self.tool_input:
+            result["tool_input"] = self.tool_input
+        if self.tool_response:
+            result["tool_response"] = self.tool_response
+        if self.notification:
+            result["notification"] = self.notification
+        if self.output:
+            result["output"] = self.output
+        if self.result:
+            result["result"] = self.result
 
-        return data
+        # Preserve any additional fields from raw_data that aren't standard
+        if self.raw_data:
+            # Get the actual data (handle nested format)
+            source_data = self.raw_data
+            if "data" in self.raw_data and isinstance(self.raw_data["data"], dict):
+                source_data = self.raw_data["data"]
+
+            # Add any non-standard fields
+            standard_fields = {
+                "hook_event_name",
+                "session_id",
+                "cwd",
+                "tool_name",
+                "tool_input",
+                "tool_response",
+                "result",
+                "prompt",
+                "notification",
+                "output",
+                "data",
+            }
+            for key, value in source_data.items():
+                if key not in standard_fields and key not in result:
+                    result[key] = value
+
+        return result

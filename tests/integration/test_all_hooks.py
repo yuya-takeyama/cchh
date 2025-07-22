@@ -19,17 +19,19 @@ class TestAllHooksIntegration:
 
     @pytest.fixture
     def sample_events(self):
-        """Sample hook events for testing"""
+        """Sample hook events for testing (flat format like Claude Code)"""
         return {
             "user_prompt": {
                 "hook_event_name": "UserPromptSubmit",
                 "session_id": "test-session-123",
+                "transcript_path": "/test/transcript.jsonl",
                 "cwd": "/test/directory",
                 "prompt": "Please help me fix this bug",
             },
             "bash_command": {
                 "hook_event_name": "PreToolUse",
                 "session_id": "test-session-123",
+                "transcript_path": "/test/transcript.jsonl",
                 "cwd": "/test/directory",
                 "tool_name": "Bash",
                 "tool_input": {"command": "echo 'Hello World'"},
@@ -37,6 +39,7 @@ class TestAllHooksIntegration:
             "task": {
                 "hook_event_name": "PreToolUse",
                 "session_id": "test-session-123",
+                "transcript_path": "/test/transcript.jsonl",
                 "cwd": "/test/directory",
                 "tool_name": "Task",
                 "tool_input": {"description": "Fix authentication bug"},
@@ -44,6 +47,7 @@ class TestAllHooksIntegration:
             "todo_write": {
                 "hook_event_name": "PreToolUse",
                 "session_id": "test-session-123",
+                "transcript_path": "/test/transcript.jsonl",
                 "cwd": "/test/directory",
                 "tool_name": "TodoWrite",
                 "tool_input": {
@@ -64,19 +68,22 @@ class TestAllHooksIntegration:
             "error_result": {
                 "hook_event_name": "PostToolUse",
                 "session_id": "test-session-123",
+                "transcript_path": "/test/transcript.jsonl",
                 "cwd": "/test/directory",
                 "tool_name": "Bash",
-                "result": {"error": "Command not found"},
+                "tool_response": {"error": "Command not found"},
             },
             "notification": {
                 "hook_event_name": "Notification",
                 "session_id": "test-session-123",
+                "transcript_path": "/test/transcript.jsonl",
                 "cwd": "/test/directory",
-                "notification": "Claude needs your permission to use Bash",
+                "message": "Claude needs your permission to use Bash",
             },
             "stop": {
                 "hook_event_name": "Stop",
                 "session_id": "test-session-123",
+                "transcript_path": "/test/transcript.jsonl",
                 "cwd": "/test/directory",
             },
         }
@@ -204,15 +211,15 @@ class TestAllHooksIntegration:
 
         assert result.returncode == 0
         output_data = json.loads(result.stdout)
-        assert output_data["notification"] == "Claude needs your permission to use Bash"
+        assert output_data["message"] == "Claude needs your permission to use Bash"
 
     def test_concurrent_sessions(self, sample_events):
         """Test handling events from different sessions"""
         # Modify session ID
-        event1 = sample_events["user_prompt"].copy()
+        event1 = json.loads(json.dumps(sample_events["user_prompt"]))  # Deep copy
         event1["session_id"] = "session-1"
 
-        event2 = sample_events["bash_command"].copy()
+        event2 = json.loads(json.dumps(sample_events["bash_command"]))  # Deep copy
         event2["session_id"] = "session-2"
 
         result1 = self.run_all_hooks(event1)
@@ -226,6 +233,7 @@ class TestAllHooksIntegration:
         event = {
             "hook_event_name": "PreToolUse",
             "session_id": "test-session",
+            "transcript_path": "/test/transcript.jsonl",
             "cwd": "/test",
             "tool_name": "Bash",
             # tool_input is missing
@@ -236,7 +244,7 @@ class TestAllHooksIntegration:
 
     def test_special_characters_in_input(self, sample_events):
         """Test handling of special characters in input"""
-        event = sample_events["bash_command"].copy()
+        event = json.loads(json.dumps(sample_events["bash_command"]))  # Deep copy
         event["tool_input"]["command"] = "echo '特殊文字 \"quotes\" and $variables'"
 
         result = self.run_all_hooks(event)
@@ -257,6 +265,7 @@ class TestAllHooksIntegration:
         event = {
             "hook_event_name": event_name,
             "session_id": "test-session",
+            "transcript_path": "/test/transcript.jsonl",
             "cwd": "/test",
         }
 
