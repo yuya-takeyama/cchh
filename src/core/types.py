@@ -61,9 +61,29 @@ class HookEvent:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON output"""
+        # If we have raw_data (from Claude Code), preserve its structure
+        # but ensure notification field is included for proper handling
         if self.raw_data:
-            return self.raw_data
+            # Check if this is a nested structure with 'data' field
+            if "data" in self.raw_data and isinstance(self.raw_data["data"], dict):
+                # Clone the raw data to avoid modifying the original
+                result = self.raw_data.copy()
+                result["data"] = self.raw_data["data"].copy()
+                
+                # Add notification field to nested data if it's a Notification event
+                if (
+                    result["data"].get("hook_event_name") == "Notification"
+                    and self.notification is not None
+                    and "notification" not in result["data"]
+                ):
+                    result["data"]["notification"] = self.notification
+                
+                return result
+            else:
+                # Flat structure - return raw_data as is
+                return self.raw_data
 
+        # No raw_data - build from fields (for tests, etc)
         # Convert enum to string if necessary
         event_name = self.hook_event_name
         if isinstance(event_name, HookEventName):

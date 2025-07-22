@@ -43,7 +43,11 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
 
         data["cwd"] = os.getcwd()
 
-    return HookEvent.from_dict(data)
+    # Create HookEvent with normalized data but preserve original raw_data
+    event = HookEvent.from_dict(data)
+    # Override raw_data with the original nested structure
+    event.raw_data = raw_data
+    return event
 
 
 def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
