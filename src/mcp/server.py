@@ -109,7 +109,7 @@ async def handle_call_tool(
     log_debug(f"Slack configured: {slack_integration.is_configured}")
 
     # Send Slack notification if configured
-    if session_id and slack_integration.is_configured:
+    if slack_integration.is_configured:
         asyncio.create_task(
             asyncio.to_thread(
                 slack_integration.send_approval_request,
@@ -136,6 +136,12 @@ async def run():
     """Run the MCP server."""
     log_debug("MCP server starting...")
     log_debug(f"Log file: {log_file}")
+    
+    # Debug environment variables
+    import os
+    log_debug(f"Environment - CCHH_SLACK_BOT_TOKEN: {bool(os.environ.get('CCHH_SLACK_BOT_TOKEN'))}")
+    log_debug(f"Environment - CCHH_SLACK_CHANNEL_ID: {bool(os.environ.get('CCHH_SLACK_CHANNEL_ID'))}")
+    log_debug(f"Slack integration configured: {slack_integration.is_configured}")
     
     # Start approval HTTP server in background
     await approval_server.start()
