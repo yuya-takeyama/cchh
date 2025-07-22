@@ -189,6 +189,14 @@ class EventFormatter:
         if isinstance(notification, str):
             text = notification
         else:
+            # Handle structured permission request format
+            if notification.get("type") == "toolUseRequiresApproval":
+                tool_name = notification.get("tool", "Unknown")
+                message = SLACK_MESSAGES["notification_permission"].format(
+                    tool_name=tool_name
+                )
+                return message, NotificationLevel.CHANNEL
+            
             text = notification.get("text", "")
 
         # 重要な通知の判定

@@ -62,9 +62,20 @@ def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Normalized flat event data
     """
-    # If already in flat format (tests, legacy), return as-is
+    # If already in flat format (tests, legacy), handle message->notification mapping
     if "hook_event_name" in raw_data and "data" not in raw_data:
-        return raw_data.copy()
+        data = raw_data.copy()
+        
+        # Special handling for Notification events in flat format
+        if (
+            data.get("hook_event_name") == "Notification"
+            and "message" in data
+            and "notification" not in data
+        ):
+            # Map message to notification field
+            data["notification"] = data["message"]
+        
+        return data
 
     # Handle nested Claude Code format
     if "data" in raw_data:
