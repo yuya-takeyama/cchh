@@ -229,6 +229,8 @@ class SlackNotifier(BaseHandler):
             if thread_state and thread_state.get("thread_ts"):
                 # 既存スレッドがある場合は返信として投稿
                 data["thread_ts"] = thread_state["thread_ts"]
+                # CHANNELレベルの場合は常にbroadcast
+                data["reply_broadcast"] = "true"
 
         elif level == NotificationLevel.THREAD:
             # スレッド投稿時：既存スレッドに投稿、なければチャンネル投稿でスレッド作成
