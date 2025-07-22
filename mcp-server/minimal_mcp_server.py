@@ -5,15 +5,15 @@
 """
 
 import json
-import sys
 import logging
-from typing import Any, Dict, Optional
+import sys
+from typing import Any
 
 # ログ設定
 logging.basicConfig(
     filename="mcp_server.log",
     level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
@@ -24,22 +24,17 @@ class MinimalMCPServer:
         self.server_info = {
             "name": "minimal-mcp-server",
             "version": "0.1.0",
-            "capabilities": {
-                "tools": {
-                    "supported": True,
-                    "permissions": True
-                }
-            }
+            "capabilities": {"tools": {"supported": True, "permissions": True}},
         }
         logging.info("MCP Server initialized")
 
-    def read_message(self) -> Optional[Dict[str, Any]]:
+    def read_message(self) -> dict[str, Any] | None:
         """標準入力からJSON-RPCメッセージを読み取る"""
         try:
             line = sys.stdin.readline()
             if not line:
                 return None
-            
+
             message = json.loads(line.strip())
             logging.debug(f"Received message: {message}")
             return message
@@ -50,7 +45,7 @@ class MinimalMCPServer:
             logging.error(f"Error reading message: {e}")
             return None
 
-    def send_message(self, message: Dict[str, Any]):
+    def send_message(self, message: dict[str, Any]):
         """標準出力にJSON-RPCメッセージを送信"""
         try:
             json_str = json.dumps(message)
@@ -60,32 +55,34 @@ class MinimalMCPServer:
         except Exception as e:
             logging.error(f"Error sending message: {e}")
 
-    def handle_initialize(self, request_id: Any) -> Dict[str, Any]:
+    def handle_initialize(self, request_id: Any) -> dict[str, Any]:
         """初期化リクエストを処理"""
         return {
             "jsonrpc": "2.0",
             "id": request_id,
             "result": {
                 "serverInfo": self.server_info,
-                "capabilities": self.server_info["capabilities"]
-            }
+                "capabilities": self.server_info["capabilities"],
+            },
         }
 
-    def handle_permission_request(self, request_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_permission_request(
+        self, request_id: Any, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """権限リクエストを処理（全て承認）"""
         logging.info(f"Permission request: {params}")
-        
+
         # Custom Permission Prompt Tool のレスポンス形式
         return {
             "jsonrpc": "2.0",
             "id": request_id,
             "result": {
                 "behavior": "allow",  # 常に承認
-                "message": "Auto-approved by minimal MCP server"
-            }
+                "message": "Auto-approved by minimal MCP server",
+            },
         }
 
-    def handle_request(self, message: Dict[str, Any]):
+    def handle_request(self, message: dict[str, Any]):
         """JSON-RPCリクエストを処理"""
         if "method" not in message:
             logging.error("No method in message")
@@ -108,10 +105,7 @@ class MinimalMCPServer:
             response = {
                 "jsonrpc": "2.0",
                 "id": request_id,
-                "error": {
-                    "code": -32601,
-                    "message": "Method not found"
-                }
+                "error": {"code": -32601, "message": "Method not found"},
             }
 
         if request_id is not None:
@@ -120,13 +114,13 @@ class MinimalMCPServer:
     def run(self):
         """サーバーのメインループ"""
         logging.info("MCP Server starting...")
-        
+
         while True:
             message = self.read_message()
             if message is None:
                 logging.info("No more messages, shutting down")
                 break
-            
+
             try:
                 self.handle_request(message)
             except Exception as e:
@@ -139,8 +133,8 @@ class MinimalMCPServer:
                         "error": {
                             "code": -32603,
                             "message": "Internal error",
-                            "data": str(e)
-                        }
+                            "data": str(e),
+                        },
                     }
                     self.send_message(error_response)
 

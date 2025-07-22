@@ -20,8 +20,10 @@ class HookEventName(Enum):
 # These TypedDicts define the exact structure of events sent by Claude Code
 # Based on https://docs.anthropic.com/en/docs/claude-code/hooks#hook-input
 
+
 class BaseHookInput(TypedDict):
     """Base fields present in all hook events"""
+
     hook_event_name: str
     session_id: str
     transcript_path: str
@@ -30,38 +32,51 @@ class BaseHookInput(TypedDict):
 
 class PreToolUseInput(BaseHookInput):
     """PreToolUse event input schema"""
+
     tool_name: str
     tool_input: dict[str, Any]
 
 
 class PostToolUseInput(BaseHookInput):
     """PostToolUse event input schema"""
+
     tool_name: str
     tool_response: NotRequired[dict[str, Any]]  # May contain error
 
 
 class NotificationInput(BaseHookInput):
     """Notification event input schema"""
+
     message: str  # Note: Claude Code sends 'message', not 'notification'
 
 
 class StopInput(BaseHookInput):
     """Stop event input schema"""
+
     pass  # No additional fields
 
 
 class UserPromptSubmitInput(BaseHookInput):
     """UserPromptSubmit event input schema"""
+
     prompt: str
 
 
 class PreCompactInput(BaseHookInput):
     """PreCompact event input schema"""
+
     pass  # No additional fields documented
 
 
 # Union type for all possible hook inputs
-HookInput = PreToolUseInput | PostToolUseInput | NotificationInput | StopInput | UserPromptSubmitInput | PreCompactInput
+HookInput = (
+    PreToolUseInput
+    | PostToolUseInput
+    | NotificationInput
+    | StopInput
+    | UserPromptSubmitInput
+    | PreCompactInput
+)
 
 
 @dataclass
