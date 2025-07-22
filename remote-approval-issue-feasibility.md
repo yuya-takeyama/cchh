@@ -262,3 +262,85 @@ Custom Permission Prompt Tool を使用したリモート承認機能が実際�
 - Permission Promptは現在のClaude Codeバージョンでは実装されていない可能性
 - または特定の条件（設定、ツール使用パターン）でのみ発行される
 - MCPサーバーは常時起動ではなくオンデマンド起動の可能性
+
+## Phase 2: 公式SDK を使用した再実装計画
+
+### 発見事項
+1. **公式 Python SDK の存在**
+   - GitHub: `https://github.com/modelcontextprotocol/python-sdk`
+   - 完全なMCP仕様の実装
+   - stdio、SSE、HTTP transportのサポート
+
+2. **Claude Code のサポート状況**
+   - stdio、SSE、HTTP の3つのtransportをサポート
+   - OAuth 2.0認証のサポート
+   - 環境変数の展開機能
+
+### 実装計画
+
+#### 準備作業（1時間）
+1. 公式SDKのインストールと依存関係の設定
+2. SDKのドキュメントとサンプルコードの調査
+3. Permission Prompt Toolの仕様確認
+
+#### 基本実装（2-3時間）
+1. **SDK ベースのMCPサーバー実装**
+   - `mcp.server` を使用した標準的な実装
+   - stdio transport の設定
+   - 適切なエラーハンドリング
+
+2. **Permission Handler の実装**
+   - Permission prompt のリクエストを処理
+   - 承認/拒否のレスポンス生成
+   - タイムアウト処理
+
+3. **デバッグ機能の実装**
+   - 詳細なログ出力
+   - リクエスト/レスポンスの記録
+   - エラー情報の収集
+
+#### 統合テスト（1時間）
+1. Claude Code への登録と起動確認
+2. Permission Prompt の発行条件の特定
+3. 通信プロトコルの動作確認
+
+#### リモート承認の実装（2-3時間）
+1. **HTTP/WebSocket サーバーの追加**
+   - SDKのHTTP transportを使用
+   - リモートアクセス用のエンドポイント
+
+2. **Web インターフェース**
+   - 承認待ちリクエストの表示
+   - 承認/拒否ボタン
+   - リアルタイム更新
+
+3. **セキュリティ対策**
+   - 認証トークンの実装
+   - HTTPS の設定
+   - アクセス制限
+
+### 技術スタック
+- **言語**: Python 3.11+
+- **MCP SDK**: modelcontextprotocol/python-sdk
+- **Web Framework**: FastAPI または Flask
+- **WebSocket**: websockets ライブラリ
+- **Frontend**: 簡易HTML + JavaScript
+
+### 成功基準
+1. SDK を使用したMCPサーバーが正常に起動する
+2. Claude Code から認識され、通信が確立する
+3. Permission Prompt を受信して処理できる
+4. リモートからの承認/拒否が機能する
+
+### リスクと対策
+1. **SDK の学習曲線**
+   - 公式ドキュメントとサンプルコードを活用
+   - 段階的な実装アプローチ
+
+2. **Permission Prompt の仕様不明**
+   - 実験的アプローチで仕様を推測
+   - コミュニティやフォーラムでの情報収集
+
+3. **ネットワークセキュリティ**
+   - ローカルネットワーク内での初期テスト
+   - 段階的なセキュリティ強化
