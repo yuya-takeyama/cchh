@@ -79,6 +79,10 @@ def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
 
     # Handle nested Claude Code format
     if "data" in raw_data:
+        # Validate that data field is a dictionary
+        if not isinstance(raw_data["data"], dict):
+            return raw_data.copy()
+
         # Start with the nested data
         data = raw_data["data"].copy()
 

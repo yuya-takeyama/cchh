@@ -184,3 +184,38 @@ class TestNormalizeHookEventData:
 
         assert result == data
         assert result is not data  # Should be a copy
+
+    def test_non_dict_data_field(self):
+        """Test handling of non-dict data field"""
+        raw_data = {
+            "data": "not a dictionary",
+            "hook_event_name": "Notification",
+            "session_id": "test-session",
+        }
+
+        result = _normalize_hook_event_data(raw_data)
+
+        # Should return original data when data field is not a dict
+        assert result == raw_data
+        assert result is not raw_data  # Should be a copy
+
+    def test_notification_string_type(self):
+        """Test that notification field can be a string type"""
+        from src.utils.io_helpers import load_hook_event
+
+        # Test with string notification in nested format
+        nested_event = {
+            "data": {
+                "hook_event_name": "Notification",
+                "session_id": "test-session",
+                "cwd": "/test",
+                "message": "Claude needs your permission to use Bash",
+            }
+        }
+
+        stream = io.StringIO(json.dumps(nested_event))
+        event = load_hook_event(stream)
+
+        # Verify notification field is a string
+        assert event.notification == "Claude needs your permission to use Bash"
+        assert isinstance(event.notification, str)
