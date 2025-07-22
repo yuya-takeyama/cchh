@@ -19,65 +19,79 @@ class TestAllHooksIntegration:
 
     @pytest.fixture
     def sample_events(self):
-        """Sample hook events for testing"""
+        """Sample hook events for testing (nested format like Claude Code)"""
         return {
             "user_prompt": {
-                "hook_event_name": "UserPromptSubmit",
-                "session_id": "test-session-123",
-                "cwd": "/test/directory",
-                "prompt": "Please help me fix this bug",
+                "data": {
+                    "hook_event_name": "UserPromptSubmit",
+                    "session_id": "test-session-123",
+                    "cwd": "/test/directory",
+                    "prompt": "Please help me fix this bug",
+                }
             },
             "bash_command": {
-                "hook_event_name": "PreToolUse",
-                "session_id": "test-session-123",
-                "cwd": "/test/directory",
-                "tool_name": "Bash",
-                "tool_input": {"command": "echo 'Hello World'"},
+                "data": {
+                    "hook_event_name": "PreToolUse",
+                    "session_id": "test-session-123",
+                    "cwd": "/test/directory",
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "echo 'Hello World'"},
+                }
             },
             "task": {
-                "hook_event_name": "PreToolUse",
-                "session_id": "test-session-123",
-                "cwd": "/test/directory",
-                "tool_name": "Task",
-                "tool_input": {"description": "Fix authentication bug"},
+                "data": {
+                    "hook_event_name": "PreToolUse",
+                    "session_id": "test-session-123",
+                    "cwd": "/test/directory",
+                    "tool_name": "Task",
+                    "tool_input": {"description": "Fix authentication bug"},
+                }
             },
             "todo_write": {
-                "hook_event_name": "PreToolUse",
-                "session_id": "test-session-123",
-                "cwd": "/test/directory",
-                "tool_name": "TodoWrite",
-                "tool_input": {
-                    "todos": [
-                        {
-                            "content": "Task 1",
-                            "status": "completed",
-                            "priority": "high",
-                        },
-                        {
-                            "content": "Task 2",
-                            "status": "pending",
-                            "priority": "medium",
-                        },
-                    ]
-                },
+                "data": {
+                    "hook_event_name": "PreToolUse",
+                    "session_id": "test-session-123",
+                    "cwd": "/test/directory",
+                    "tool_name": "TodoWrite",
+                    "tool_input": {
+                        "todos": [
+                            {
+                                "content": "Task 1",
+                                "status": "completed",
+                                "priority": "high",
+                            },
+                            {
+                                "content": "Task 2",
+                                "status": "pending",
+                                "priority": "medium",
+                            },
+                        ]
+                    },
+                }
             },
             "error_result": {
-                "hook_event_name": "PostToolUse",
-                "session_id": "test-session-123",
-                "cwd": "/test/directory",
-                "tool_name": "Bash",
-                "result": {"error": "Command not found"},
+                "data": {
+                    "hook_event_name": "PostToolUse",
+                    "session_id": "test-session-123",
+                    "cwd": "/test/directory",
+                    "tool_name": "Bash",
+                    "result": {"error": "Command not found"},
+                }
             },
             "notification": {
-                "hook_event_name": "Notification",
-                "session_id": "test-session-123",
-                "cwd": "/test/directory",
-                "notification": "Claude needs your permission to use Bash",
+                "data": {
+                    "hook_event_name": "Notification",
+                    "session_id": "test-session-123",
+                    "cwd": "/test/directory",
+                    "message": "Claude needs your permission to use Bash",
+                }
             },
             "stop": {
-                "hook_event_name": "Stop",
-                "session_id": "test-session-123",
-                "cwd": "/test/directory",
+                "data": {
+                    "hook_event_name": "Stop",
+                    "session_id": "test-session-123",
+                    "cwd": "/test/directory",
+                }
             },
         }
 
@@ -114,7 +128,7 @@ class TestAllHooksIntegration:
         assert result.returncode == 0
         # Should output the original event
         output_data = json.loads(result.stdout)
-        assert output_data["hook_event_name"] == "UserPromptSubmit"
+        assert output_data["data"]["hook_event_name"] == "UserPromptSubmit"
 
     def test_all_features_disabled(self, sample_events):
         """Test execution with all features disabled"""
@@ -129,7 +143,7 @@ class TestAllHooksIntegration:
         assert result.returncode == 0
         # Should still output the event
         output_data = json.loads(result.stdout)
-        assert output_data["tool_name"] == "Bash"
+        assert output_data["data"]["tool_name"] == "Bash"
 
     def test_with_zunda_enabled(self, sample_events):
         """Test with Zunda speaker enabled"""
@@ -145,7 +159,7 @@ class TestAllHooksIntegration:
         # Should complete successfully
         assert result.returncode == 0
         output_data = json.loads(result.stdout)
-        assert output_data["hook_event_name"] == "UserPromptSubmit"
+        assert output_data["data"]["hook_event_name"] == "UserPromptSubmit"
 
     def test_error_handling(self):
         """Test handling of invalid JSON input"""
@@ -175,7 +189,7 @@ class TestAllHooksIntegration:
             result = self.run_all_hooks(event)
             assert result.returncode == 0
             output_data = json.loads(result.stdout)
-            assert output_data["hook_event_name"] == event["hook_event_name"]
+            assert output_data["data"]["hook_event_name"] == event["data"]["hook_event_name"]
 
     def test_event_logging_enabled(self, sample_events, tmp_path):
         """Test with event logging enabled"""
@@ -196,7 +210,7 @@ class TestAllHooksIntegration:
         # Since logger checks test environment, we can't test actual file creation in test env
         # Just check that it runs successfully
         output_data = json.loads(result.stdout)
-        assert output_data["tool_name"] == "Bash"
+        assert output_data["data"]["tool_name"] == "Bash"
 
     def test_permission_notification(self, sample_events):
         """Test handling of permission notification"""
@@ -204,16 +218,16 @@ class TestAllHooksIntegration:
 
         assert result.returncode == 0
         output_data = json.loads(result.stdout)
-        assert output_data["notification"] == "Claude needs your permission to use Bash"
+        assert output_data["data"]["notification"] == "Claude needs your permission to use Bash"
 
     def test_concurrent_sessions(self, sample_events):
         """Test handling events from different sessions"""
         # Modify session ID
-        event1 = sample_events["user_prompt"].copy()
-        event1["session_id"] = "session-1"
+        event1 = json.loads(json.dumps(sample_events["user_prompt"]))  # Deep copy
+        event1["data"]["session_id"] = "session-1"
 
-        event2 = sample_events["bash_command"].copy()
-        event2["session_id"] = "session-2"
+        event2 = json.loads(json.dumps(sample_events["bash_command"]))  # Deep copy
+        event2["data"]["session_id"] = "session-2"
 
         result1 = self.run_all_hooks(event1)
         result2 = self.run_all_hooks(event2)
@@ -224,11 +238,13 @@ class TestAllHooksIntegration:
     def test_empty_tool_input(self):
         """Test handling of events with missing tool input"""
         event = {
-            "hook_event_name": "PreToolUse",
-            "session_id": "test-session",
-            "cwd": "/test",
-            "tool_name": "Bash",
-            # tool_input is missing
+            "data": {
+                "hook_event_name": "PreToolUse",
+                "session_id": "test-session",
+                "cwd": "/test",
+                "tool_name": "Bash",
+                # tool_input is missing
+            }
         }
 
         result = self.run_all_hooks(event)
@@ -236,8 +252,8 @@ class TestAllHooksIntegration:
 
     def test_special_characters_in_input(self, sample_events):
         """Test handling of special characters in input"""
-        event = sample_events["bash_command"].copy()
-        event["tool_input"]["command"] = "echo '特殊文字 \"quotes\" and $variables'"
+        event = json.loads(json.dumps(sample_events["bash_command"]))  # Deep copy
+        event["data"]["tool_input"]["command"] = "echo '特殊文字 \"quotes\" and $variables'"
 
         result = self.run_all_hooks(event)
         assert result.returncode == 0
@@ -255,9 +271,11 @@ class TestAllHooksIntegration:
     def test_all_event_types(self, event_name):
         """Test all supported event types"""
         event = {
-            "hook_event_name": event_name,
-            "session_id": "test-session",
-            "cwd": "/test",
+            "data": {
+                "hook_event_name": event_name,
+                "session_id": "test-session",
+                "cwd": "/test",
+            }
         }
 
         result = self.run_all_hooks(event)

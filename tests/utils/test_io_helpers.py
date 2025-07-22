@@ -157,20 +157,6 @@ class TestNormalizeHookEventData:
         # Should not override existing notification (defensive programming)
         assert result["notification"] == "Existing notification field"
 
-    def test_non_dict_data_field(self):
-        """Test handling of non-dict data field"""
-        raw_data = {
-            "data": "not a dictionary",
-            "hook_event_name": "Notification",
-            "session_id": "test-session",
-        }
-
-        result = _normalize_hook_event_data(raw_data)
-
-        # Should return original data when data field is not a dict
-        assert result == raw_data
-        assert result is not raw_data  # Should be a copy
-
     def test_notification_field_from_message(self):
         """Test that message field is converted to notification field"""
         event_data = {

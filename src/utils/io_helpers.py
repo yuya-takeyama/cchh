@@ -53,42 +53,34 @@ def load_hook_event(stream: TextIO | None = None) -> HookEvent:
 def _normalize_hook_event_data(raw_data: dict[str, Any]) -> dict[str, Any]:
     """Normalize Claude Code event data structure
 
-    Handles the nested format from Claude Code where the actual event data
-    is nested inside a 'data' field.
+    Claude Code sends events in a nested format where the actual event data
+    is inside a 'data' field. This function flattens the structure and maps
+    the 'message' field to 'notification' for Notification events.
 
     Args:
-        raw_data: Raw event data from Claude Code
+        raw_data: Raw event data from Claude Code (always nested format)
 
     Returns:
         Normalized event data
     """
-    # Handle nested Claude Code format
-    if "data" in raw_data:
-        # Validate that data field is a dictionary
-        if not isinstance(raw_data["data"], dict):
-            return raw_data.copy()
+    # Start with the nested data
+    data = raw_data["data"].copy()
 
-        # Start with the nested data
-        data = raw_data["data"].copy()
+    # Copy top-level fields that aren't in nested data
+    for key, value in raw_data.items():
+        if key != "data" and key not in data:
+            data[key] = value
 
-        # Copy top-level fields that aren't in nested data
-        for key, value in raw_data.items():
-            if key != "data" and key not in data:
-                data[key] = value
+    # Special handling for Notification events
+    if (
+        data.get("hook_event_name") == "Notification"
+        and "message" in data
+        and "notification" not in data
+    ):
+        # Map data.message to notification field
+        data["notification"] = data["message"]
 
-        # Special handling for Notification events
-        if (
-            data.get("hook_event_name") == "Notification"
-            and "message" in data
-            and "notification" not in data
-        ):
-            # Map data.message to notification field
-            data["notification"] = data["message"]
-
-        return data
-
-    # No data field - return as is
-    return raw_data.copy()
+    return data
 
 
 def write_hook_event(event: HookEvent, stream: TextIO | None = None) -> None:
