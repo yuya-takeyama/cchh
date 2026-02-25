@@ -10,21 +10,8 @@ class EventDispatcher:
     """Dispatches hook events to appropriate handlers"""
 
     def __init__(self):
-        self.slack: HookHandler | None = self._init_slack()
         self.zunda: HookHandler | None = self._init_zunda()
         self.logger: HookHandler | None = self._init_logger()
-
-    def _init_slack(self) -> HookHandler | None:
-        """Initialize Slack notifier if enabled"""
-        if os.getenv("CCHH_SLACK_NOTIFICATIONS_ENABLED", "true").lower() == "true":
-            try:
-                from ..slack.notifier import SlackNotifier
-
-                return SlackNotifier()
-            except ImportError:
-                print("Warning: Slack module not found")
-                return None
-        return None
 
     def _init_zunda(self) -> HookHandler | None:
         """Initialize Zunda speaker if enabled"""
@@ -53,12 +40,6 @@ class EventDispatcher:
     def dispatch(self, event: HookEvent) -> None:
         """Dispatch event to all enabled handlers"""
         # 各機能に並列でイベントを渡す
-        if self.slack:
-            try:
-                self.slack.handle_event(event)
-            except Exception as e:
-                print(f"Slack handler error: {e}")
-
         if self.zunda:
             try:
                 self.zunda.handle_event(event)
