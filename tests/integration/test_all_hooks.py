@@ -126,7 +126,6 @@ class TestAllHooksIntegration:
     def test_all_features_disabled(self, sample_events):
         """Test execution with all features disabled"""
         env_vars = {
-            "CCHH_SLACK_NOTIFICATIONS_ENABLED": "false",
             "CCHH_ZUNDA_SPEAKER_ENABLED": "false",
             "CCHH_EVENT_LOGGING_ENABLED": "false",
         }
@@ -141,7 +140,6 @@ class TestAllHooksIntegration:
     def test_with_zunda_enabled(self, sample_events):
         """Test with Zunda speaker enabled"""
         env_vars = {
-            "CCHH_SLACK_NOTIFICATIONS_ENABLED": "false",
             "CCHH_ZUNDA_SPEAKER_ENABLED": "true",
             "CCHH_EVENT_LOGGING_ENABLED": "false",
         }
@@ -190,7 +188,6 @@ class TestAllHooksIntegration:
         log_dir.mkdir()
 
         env_vars = {
-            "CCHH_SLACK_NOTIFICATIONS_ENABLED": "false",
             "CCHH_ZUNDA_SPEAKER_ENABLED": "false",
             "CCHH_EVENT_LOGGING_ENABLED": "true",
             "CCHH_LOG_DIR": str(log_dir),

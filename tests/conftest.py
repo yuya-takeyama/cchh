@@ -38,14 +38,6 @@ def temp_log_dir(tmp_path):
 
 
 @pytest.fixture
-def mock_slack_config(monkeypatch):
-    """Mock Slack configuration"""
-    monkeypatch.setenv("CCHH_SLACK_BOT_TOKEN", "xoxb-test-token")
-    monkeypatch.setenv("CCHH_SLACK_CHANNEL_ID", "C1234567890")
-    monkeypatch.setenv("CCHH_SLACK_NOTIFICATIONS_ENABLED", "true")
-
-
-@pytest.fixture
 def mock_zunda_config(monkeypatch):
     """Mock Zunda configuration"""
     monkeypatch.setenv("CCHH_ZUNDA_SPEAKER_ENABLED", "true")
@@ -54,6 +46,5 @@ def mock_zunda_config(monkeypatch):
 @pytest.fixture
 def disable_all_features(monkeypatch):
     """Disable all notification features"""
-    monkeypatch.setenv("CCHH_SLACK_NOTIFICATIONS_ENABLED", "false")
     monkeypatch.setenv("CCHH_ZUNDA_SPEAKER_ENABLED", "false")
     monkeypatch.setenv("CCHH_EVENT_LOGGING_ENABLED", "false")
