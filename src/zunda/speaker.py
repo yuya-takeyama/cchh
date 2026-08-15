@@ -91,7 +91,11 @@ class ZundaSpeaker(BaseHandler):
 
         elif event.tool_name == "Bash":
             cmd = event.tool_input.get("command", "")
-            if cmd and not zunda_config.is_silent_command(cmd):
+            if (
+                cmd
+                and zunda_config.speak_commands
+                and not zunda_config.is_silent_command(cmd)
+            ):
                 # コマンドを読みやすい日本語に変換
                 readable_cmd = self.command_formatter.format(cmd)
                 voice_message = ZUNDAMON_MESSAGES["bash_command"].format(

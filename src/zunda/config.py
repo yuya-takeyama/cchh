@@ -25,6 +25,11 @@ class ZundaConfig:
         self.enabled = self._get_bool_env("CCHH_ZUNDA_SPEAKER_ENABLED", True)
         self.default_style = ZundaspeakStyle.NORMAL
 
+        # Bashコマンドの読み上げは頻度が高くうるさいためデフォルトで無効
+        self.speak_commands = self._get_bool_env(
+            "CCHH_ZUNDA_SPEAK_COMMANDS_ENABLED", False
+        )
+
         # Silent commands (commands that should not be spoken)
         self.silent_commands = [
             "git status",

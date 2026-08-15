@@ -6,13 +6,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.types import HookEvent
-from src.zunda.config import ZundaspeakStyle
+from src.zunda.config import ZundaspeakStyle, zunda_config
 from src.zunda.speaker import ZundaSpeaker
 
 
 @pytest.fixture
-def zunda_speaker():
+def zunda_speaker(monkeypatch):
     """Create ZundaSpeaker instance"""
+    # 既定でコマンド読み上げは無効なので、読み上げ系のテスト用に有効化する
+    monkeypatch.setattr(zunda_config, "speak_commands", True)
     with patch("src.zunda.speaker.zunda_config") as mock_config:
         mock_config.enabled = True
         mock_config.default_style = MagicMock(value="0")
@@ -127,6 +129,50 @@ class TestZundaSpeaker:
             mock_run.assert_called_once()
             args = mock_run.call_args[0][0]
             assert "git commit" in args[3]
+
+    def test_bash_not_spoken_when_speak_commands_disabled(self):
+        """Test that Bash commands are silent when speak_commands is disabled"""
+        with patch("src.zunda.speaker.zunda_config") as mock_config:
+            mock_config.enabled = True
+            mock_config.speak_commands = False
+            mock_config.default_style = MagicMock(value="0")
+            mock_config.is_silent_command = MagicMock(return_value=False)
+            speaker = ZundaSpeaker()
+            speaker._is_test_environment = lambda: False
+
+            event = HookEvent(
+                hook_event_name="PreToolUse",
+                session_id="test-session",
+                cwd="/test",
+                tool_name="Bash",
+                tool_input={"command": "npm run test"},
+            )
+
+            with patch("subprocess.run") as mock_run:
+                speaker.handle_event(event)
+                mock_run.assert_not_called()
+
+    def test_other_tools_still_spoken_when_speak_commands_disabled(self):
+        """Test that disabling command speech only affects Bash commands"""
+        with patch("src.zunda.speaker.zunda_config") as mock_config:
+            mock_config.enabled = True
+            mock_config.speak_commands = False
+            mock_config.default_style = MagicMock(value="0")
+            mock_config.is_silent_command = MagicMock(return_value=False)
+            speaker = ZundaSpeaker()
+            speaker._is_test_environment = lambda: False
+
+            event = HookEvent(
+                hook_event_name="PreToolUse",
+                session_id="test-session",
+                cwd="/test",
+                tool_name="Task",
+                tool_input={"description": "Fix authentication"},
+            )
+
+            with patch("subprocess.run") as mock_run:
+                speaker.handle_event(event)
+                mock_run.assert_called_once()
 
     def test_handle_web_fetch(self, zunda_speaker):
         """Test handling of WebFetch operations"""
